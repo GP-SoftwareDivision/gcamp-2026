@@ -1,4 +1,4 @@
-import { AnimatedValueText, ScreenScroll } from '@/components/ui'
+import { AnimatedValueText, Button, Input, ScreenScroll } from '@/components/ui'
 import {
   AndroidLayout,
   ChartColors,
@@ -10,10 +10,18 @@ import {
 import { useFarmSensors, useSensorSummary } from '@/hooks/swr'
 import type { SensorSummaryData } from '@/hooks/swr/useSensorSummary'
 import { useTheme } from '@/hooks/theme'
+import { validateSensorThresholdDraft } from '@/schemas/sensorThreshold'
+import {
+  formatThresholdInput,
+  getSensorThresholdRule,
+  getThresholdKeyboardType,
+  normalizeThresholdTextInput,
+} from '@/shared/sensorThreshold'
+import { useSensorThresholdStore } from '@/store/useSensorThresholdStore'
 import { useUiPrefsStore } from '@/store/uiPrefsStore'
 import { router, useLocalSearchParams } from 'expo-router'
-import { ChevronLeft } from 'lucide-react-native'
-import { ActivityIndicator, Dimensions, PixelRatio, Pressable, Text, View } from 'react-native'
+import { ChevronLeft, SlidersHorizontal } from 'lucide-react-native'
+import { ActivityIndicator, Dimensions, Modal, PixelRatio, Pressable, Text, View } from 'react-native'
 import { LineChart as GiftedLineChart } from 'react-native-gifted-charts/dist/LineChart'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
@@ -272,6 +280,16 @@ export default function SensorDetailScreen() {
   const { id, type } = useLocalSearchParams<{ id?: string; type?: string }>()
   const selectedPeriod = useUiPrefsStore((state) => state.selectedSensorPeriod)
   const setSelectedPeriod = useUiPrefsStore((state) => state.setSelectedSensorPeriod)
+  const sensorThresholds = useSensorThresholdStore((state) => state.sensorThresholds)
+  const modalState = useSensorThresholdStore((state) => state.modal)
+  const openEditorModal = useSensorThresholdStore((state) => state.openEditorModal)
+  const closeEditorModal = useSensorThresholdStore((state) => state.closeEditorModal)
+  const openConfirmStep = useSensorThresholdStore((state) => state.openConfirmStep)
+  const closeConfirmStep = useSensorThresholdStore((state) => state.closeConfirmStep)
+  const setDraftMinInput = useSensorThresholdStore((state) => state.setDraftMinInput)
+  const setDraftMaxInput = useSensorThresholdStore((state) => state.setDraftMaxInput)
+  const setModalErrorMessage = useSensorThresholdStore((state) => state.setModalErrorMessage)
+  const confirmSaveThreshold = useSensorThresholdStore((state) => state.confirmSaveThreshold)
 
   const resolvedType = Array.isArray(type) ? type[0] : type
   const resolvedId = Array.isArray(id) ? id[0] : id
@@ -297,6 +315,42 @@ export default function SensorDetailScreen() {
   const chartData = buildChartData(mySeries, leaderSeries, sensorType)
 
   const sensorUnit = sensorType === 'ec' ? 'dS/m' : (currentUnits[sensorType] ?? sensorInfo.unit)
+  const thresholdRule = getSensorThresholdRule(sensorType)
+  const thresholdKeyboardType = getThresholdKeyboardType(sensorType)
+  const appliedThreshold = sensorThresholds[sensorType]
+  const appliedThresholdMin = appliedThreshold?.min
+  const appliedThresholdMax = appliedThreshold?.max
+  const createThresholdForm = () => {
+    return {
+      minInput:
+        appliedThresholdMin == null
+          ? ''
+          : formatThresholdInput(appliedThresholdMin, thresholdRule.decimals),
+      maxInput:
+        appliedThresholdMax == null
+          ? ''
+          : formatThresholdInput(appliedThresholdMax, thresholdRule.decimals),
+    }
+  }
+  const thresholdDraft = modalState.draft
+  const thresholdErrorMessage = modalState.errorMessage
+  const isThresholdModalVisible = modalState.isEditorModalVisible
+  const isConfirmStepVisible = modalState.isConfirmStepVisible
+  const currentThresholdLabel = (() => {
+    if (!appliedThreshold || (appliedThreshold.min == null && appliedThreshold.max == null)) {
+      return '미설정'
+    }
+
+    const minLabel =
+      appliedThreshold.min == null
+        ? '미설정'
+        : formatThresholdInput(appliedThreshold.min, thresholdRule.decimals)
+    const maxLabel =
+      appliedThreshold.max == null
+        ? '미설정'
+        : formatThresholdInput(appliedThreshold.max, thresholdRule.decimals)
+    return `최소 ${minLabel} / 최대 ${maxLabel} ${sensorUnit}`
+  })()
 
   const dailyMySeries = summary.my.daily
   const latestMy = dailyMySeries[dailyMySeries.length - 1]?.avgValue
@@ -320,6 +374,34 @@ export default function SensorDetailScreen() {
 
   const handleRefetch = async () => {
     await Promise.all([revalidateFarmSensors(), revalidateSummary()])
+  }
+
+  const handleRequestSaveThreshold = () => {
+    const result = validateSensorThresholdDraft(
+      {
+        minInput: thresholdDraft.minInput,
+        maxInput: thresholdDraft.maxInput,
+      },
+      {
+        integerOnly: thresholdRule.integerOnly,
+        decimals: thresholdRule.decimals,
+      },
+    )
+
+    if (!result.value || result.errorMessage) {
+      setModalErrorMessage(result.errorMessage ?? '입력값을 확인해 주세요.')
+      return
+    }
+
+    openConfirmStep(result.value)
+  }
+
+  const handleConfirmSaveThreshold = () => {
+    confirmSaveThreshold()
+  }
+
+  const handleCancelConfirmStep = () => {
+    closeConfirmStep()
   }
 
   const periods: { id: SummaryPeriod; label: string }[] = [
@@ -349,9 +431,19 @@ export default function SensorDetailScreen() {
         >
           <ChevronLeft size={24} color={isDark ? '#E0E0E0' : '#1C1C1E'} strokeWidth={1.5} />
         </Pressable>
-        <Text className='font-bold text-title-1 text-content dark:text-content-dark'>
+        <Text className='flex-1 font-bold text-title-1 text-content dark:text-content-dark'>
           {sensorInfo.label}
         </Text>
+        <Pressable
+          onPress={() => {
+            openEditorModal(sensorType, createThresholdForm())
+          }}
+          className='ml-3 h-9 w-9 items-center justify-center rounded-full border border-border bg-card dark:border-border-dark dark:bg-card-dark'
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+        >
+          <SlidersHorizontal size={18} color={isDark ? '#E0E0E0' : '#1C1C1E'} strokeWidth={1.8} />
+        </Pressable>
       </View>
 
       <ScreenScroll
@@ -548,6 +640,100 @@ export default function SensorDetailScreen() {
           </View>
         </View>
       </ScreenScroll>
+
+      <Modal
+        visible={isThresholdModalVisible}
+        transparent
+        animationType='fade'
+        onRequestClose={closeEditorModal}
+      >
+        <View className='flex-1 items-center justify-center bg-black/45 px-5'>
+          <View className='w-full rounded-2xl border border-border bg-card px-4 pb-4 pt-5 dark:border-border-dark dark:bg-card-dark'>
+            {isConfirmStepVisible ? (
+              <>
+                <Text className='font-semibold text-title-3 text-content dark:text-content-dark'>
+                  임계치 저장
+                </Text>
+                <Text className='mt-2 text-subhead text-content-secondary dark:text-content-dark-secondary'>
+                  입력한 임계치 설정을 저장하시겠습니까?
+                </Text>
+                <View className='mt-4 flex-row gap-2'>
+                  <Button
+                    title='취소'
+                    variant='secondary'
+                    size='md'
+                    className='flex-1 rounded-2xl'
+                    onPress={handleCancelConfirmStep}
+                  />
+                  <Button
+                    title='완료'
+                    size='md'
+                    className='flex-1 rounded-2xl'
+                    onPress={handleConfirmSaveThreshold}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <Text className='font-semibold text-title-3 text-content dark:text-content-dark'>
+                  {sensorInfo.label} 임계치 설정
+                </Text>
+                <Text className='mt-2 text-subhead text-content-secondary dark:text-content-dark-secondary'>
+                  현재 설정: {currentThresholdLabel}
+                </Text>
+
+                <View className='mt-4 gap-3'>
+                  <Input
+                    label={`최소값 (${sensorUnit})`}
+                    value={thresholdDraft.minInput}
+                    onChangeText={(value) => {
+                      const nextValue = normalizeThresholdTextInput(value, thresholdRule.integerOnly)
+                      setDraftMinInput(nextValue)
+                    }}
+                    keyboardType={thresholdKeyboardType}
+                    placeholder='최소값 입력'
+                    textAlign='right'
+                    maxLength={10}
+                  />
+
+                  <Input
+                    label={`최대값 (${sensorUnit})`}
+                    value={thresholdDraft.maxInput}
+                    onChangeText={(value) => {
+                      const nextValue = normalizeThresholdTextInput(value, thresholdRule.integerOnly)
+                      setDraftMaxInput(nextValue)
+                    }}
+                    keyboardType={thresholdKeyboardType}
+                    placeholder='최대값 입력'
+                    textAlign='right'
+                    maxLength={10}
+                  />
+                </View>
+
+                {thresholdErrorMessage ? (
+                  <Text className='mt-3 text-footnote text-danger'>{thresholdErrorMessage}</Text>
+                ) : null}
+
+                <View className='mt-4 flex-row gap-2'>
+                  <Button
+                    title='취소'
+                    variant='secondary'
+                    size='md'
+                    className='flex-1 rounded-2xl'
+                    onPress={closeEditorModal}
+                  />
+                  <Button
+                    title='저장'
+                    size='md'
+                    className='flex-1 rounded-2xl'
+                    onPress={handleRequestSaveThreshold}
+                  />
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }

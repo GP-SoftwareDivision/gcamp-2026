@@ -93,7 +93,19 @@ export default function LoginScreen() {
           const session = await getAuthSession()
           if (!session) return
 
-          const profile = await farmApi.getMyFarmProfile().catch(() => null)
+          let profile = null
+          try {
+            profile = await farmApi.getMyFarmProfile()
+          } catch (error) {
+            if (isAxiosError(error)) {
+              const status = error.response?.status
+              if (status === 401 || status === 403) {
+                await clearAuthSession()
+                setIpcamAddress(undefined)
+                return
+              }
+            }
+          }
           const currentSession = await getAuthSession()
           const hasUsableAccessToken = Boolean(currentSession?.accessToken?.trim())
 
@@ -103,6 +115,13 @@ export default function LoginScreen() {
           }
 
           setIpcamAddress(profile?.ipcamAddress)
+          hydrateFarmFromSession({
+            address: profile?.address,
+            latitude: profile?.latitude,
+            longitude: profile?.longitude,
+          })
+          setProfileName(profile?.name?.trim() || profile?.username?.trim() || '-')
+          setProfilePhone(profile?.phone?.trim() || '-')
           router.replace('/(tabs)/home')
         } finally {
           setInitialLoading(false)
@@ -113,7 +132,14 @@ export default function LoginScreen() {
     })
 
     return () => task.cancel()
-  }, [resetUiState, setIpcamAddress, setInitialLoading])
+  }, [
+    hydrateFarmFromSession,
+    resetUiState,
+    setIpcamAddress,
+    setInitialLoading,
+    setProfileName,
+    setProfilePhone,
+  ])
 
   const handleLogin = handleSubmit(async (values) => {
     if (loading) return

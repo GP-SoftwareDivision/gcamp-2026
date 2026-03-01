@@ -21,10 +21,16 @@
 ## 4. React Compiler 기준
 - React Compiler 사용을 전제로 작성한다.
 - `useMemo`, `useCallback`은 기본적으로 사용하지 않는다.
+- `useState`는 최소화한다. 서로 연관된 로컬 UI 상태는 단일 객체 상태 또는 Zustand 스토어로 통합한다.
+- 파생 가능한 값은 상태로 보관하지 말고 렌더 단계에서 계산한다.
 - 아래 조건에서만 예외적으로 사용한다.
   - 실제 성능 병목이 확인된 경우
   - 외부 라이브러리/의존성 요구로 참조 안정성이 반드시 필요한 경우
   - 사용 시 근거(왜 필요한지)를 코드 또는 문서에 짧게 남긴다.
+
+## 4-1. 공통 로직 분리 기준
+- 2개 이상 화면/훅에서 재사용되는 순수 함수는 `shared/`로 먼저 분리한다.
+- 화면 컴포넌트 내부에 단계 전이, 옵션 계산, 포맷팅 같은 공통 로직이 누적되면 즉시 `shared/` 또는 `utils/`로 이동한다.
 
 ## 5. 문서화 규칙
 - 기능 작업 후 아래 중 최소 1개 이상을 갱신한다.
@@ -39,8 +45,14 @@
 - [ ] 구현 시 className 우선 적용
 - [ ] AOS 비적용 스타일은 StyleSheet로 분리
 - [ ] 불필요한 useMemo/useCallback 미사용
+- [ ] useState 분산 남발 없이 상태 통합
+- [ ] 공통 순수 함수 shared 분리
 - [ ] 작업 후 docs 반영
 
 ## 7. Update Log (2026-02-24)
 - Temporary debug logging was added for camera RTSP address hydration flow.
 - Added tags: `[auth][normalize]`, `[auth][login]`, `[auth][bootstrap]`, `[app][bootstrap]`, `[camera][hydrate]`.
+
+## 8. Update Log (2026-02-27)
+- React Compiler 전제 규칙을 강화했습니다: `useState` 분산 사용 최소화, 파생값 렌더 계산 원칙 추가.
+- 재사용 순수 로직은 `shared/` 우선 분리 원칙을 명시했습니다.

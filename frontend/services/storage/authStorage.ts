@@ -25,6 +25,23 @@ const LEGACY_STORAGE_KEYS = {
   mac: 'auth_mac',
 } as const
 
+type AuthSessionListener = (session: StoredAuthSession | null) => void
+
+const authSessionListeners = new Set<AuthSessionListener>()
+
+function notifyAuthSessionChanged(session: StoredAuthSession | null) {
+  for (const listener of authSessionListeners) {
+    listener(session)
+  }
+}
+
+export function subscribeAuthSession(listener: AuthSessionListener): () => void {
+  authSessionListeners.add(listener)
+  return () => {
+    authSessionListeners.delete(listener)
+  }
+}
+
 export async function saveAuthSession(session: StoredAuthSession) {
   const accessToken = session.accessToken.trim()
   const refreshToken = session.refreshToken.trim()
@@ -33,6 +50,8 @@ export async function saveAuthSession(session: StoredAuthSession) {
     SecureStore.setItemAsync(STORAGE_KEYS.accessToken, accessToken),
     SecureStore.setItemAsync(STORAGE_KEYS.refreshToken, refreshToken),
   ])
+
+  notifyAuthSessionChanged({ accessToken, refreshToken })
 }
 
 export async function getAuthSession(): Promise<StoredAuthSession | null> {
@@ -55,6 +74,8 @@ export async function clearAuthSession() {
     SecureStore.deleteItemAsync(STORAGE_KEYS.refreshToken),
     ...Object.values(LEGACY_STORAGE_KEYS).map((key) => SecureStore.deleteItemAsync(key)),
   ])
+
+  notifyAuthSessionChanged(null)
 }
 
 export async function setTermsAccepted(accepted: boolean) {

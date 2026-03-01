@@ -175,3 +175,33 @@
 - Android 릴리즈 APK에서도 HTTP API 통신이 가능하도록 `android/app/src/main/AndroidManifest.xml`의 `<application>`에 `android:usesCleartextTraffic="true"`를 명시했습니다.
 - iOS EAS 빌드 프롬프트 제거를 위해 `app.json`의 `expo.ios.infoPlist`에 `ITSAppUsesNonExemptEncryption: false`를 명시했습니다.
 - 최상위 `READ.md`를 인덱스 문서에서 통합 온보딩 문서로 재구성했습니다. 아키텍처, 디자인 패턴, 스타일 가이드, Expo/EAS 운영 방법을 한 파일에서 확인할 수 있도록 정리했습니다.
+
+## 2026-02-27 Update (Architecture - React Compiler State Refactor)
+- 시세 검색 플로우의 UI 상태를 다중 `useState`에서 단일 객체 상태(`MarketSearchUiState`)로 통합했습니다.
+- 시세 검색 데이터 훅(`hooks/useMarketSearch.ts`)의 옵션/결과 상태를 각각 객체 상태로 통합해 상태 분산을 줄였습니다.
+- 출하시기 상세(`app/(tabs)/market/[grade].tsx`)의 로딩/에러/차트 데이터를 단일 상태(`MarketDetailState`)로 통합했습니다.
+- 공통 플로우/옵션 계산 로직을 `shared/marketSearchFlow.ts`, `shared/datePicker.ts`로 분리해 화면 컴포넌트의 책임을 축소했습니다.
+- 포커스 초기화 로직을 `useFocusEffect + useCallback` 조합에서 `useIsFocused + useEffect` 기반으로 단순화했습니다.
+
+## 2026-02-27 Update (Architecture - Dev Script Alias)
+- `package.json` scripts에 `expo:android` alias를 추가했습니다. 기존 `android`와 동일하게 `expo start --offline --android`를 실행합니다.
+
+## 2026-02-27 Update (Architecture - Auth Session Recovery Hardening)
+- 토큰 만료 시 동시 API 호출에서 refresh 요청이 중복으로 발생하지 않도록, 단일 in-flight refresh(single-flight) 구조를 적용했습니다.
+- 로그인 화면 부트스트랩에서 세션 복원 시 프로필 정보를 함께 하이드레이션하도록 보강했습니다(이름/연락처/농장 위치).
+- 앱 진입 시 `farm/me` 호출이 401/403으로 실패하면 세션을 정리하고 로그인 화면으로 안전하게 분기하도록 변경했습니다.
+
+## 2026-03-01 Update (Architecture - Sensor Threshold Preferences)
+- 센서 임계치 상태를 `store/useSensorThresholdStore.ts` 전용 Zustand 스토어로 분리했습니다.
+- 전용 타입을 `types/stores/sensorThreshold.ts`로 분리해 스토어 상태/액션 타입을 명시적으로 관리합니다.
+- 임계치 입력 검증은 `schemas/sensorThreshold.ts`(zod) + `types/schemas/sensorThreshold.ts` 조합으로 분리해 화면에서 스키마 검증만 호출하도록 정리했습니다.
+- 센서 상세 화면(`app/(tabs)/home/sensor/[id].tsx`)은 로컬 `useState` 대신 임계치 모달 상태를 전용 스토어에서 구독하도록 구조를 변경했습니다.
+
+## 2026-03-01 Update (Architecture - Session Expiration Redirect Guard)
+- `services/storage/authStorage.ts`에 세션 변경 구독 API(`subscribeAuthSession`)를 추가하고, 세션 저장/삭제 시 변경 이벤트를 발행하도록 확장했습니다.
+- 탭 레이아웃(`app/(tabs)/_layout.tsx`)에서 세션 변경 이벤트 및 앱 활성화 시점을 구독해, refresh token이 없거나 만료되어 세션이 정리되면 즉시 `/(auth)/login`으로 이동하도록 가드를 추가했습니다.
+
+## 2026-03-01 Update (Architecture - Sensor Threshold Single Modal Flow)
+- 센서 임계치 모달 상태를 `store/useSensorThresholdStore.ts`에서 `isConfirmStepVisible` 기반 단일 모달 2단계(편집/확인) 구조로 재정의했습니다.
+- 중첩 모달 상태(`isConfirmModalVisible`, `pendingSave`)를 제거하고, 확인 단계 데이터는 `pendingValue`로 동일 모달 컨텍스트에서만 관리하도록 단순화했습니다.
+- 임계치 저장 타입(`types/stores/sensorThreshold.ts`)을 `min/max: number | null`로 변경해 최소/최대 개별 입력(부분 입력) 시나리오를 저장 모델에서 직접 지원하도록 정리했습니다.

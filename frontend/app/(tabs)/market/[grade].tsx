@@ -27,6 +27,18 @@ type LoadChartResult = {
   errorMessage: string
 }
 
+type MarketDetailState = {
+  chartData: MarketChartData | null
+  isLoading: boolean
+  errorMessage: string
+}
+
+const INITIAL_MARKET_DETAIL_STATE: MarketDetailState = {
+  chartData: null,
+  isLoading: true,
+  errorMessage: '',
+}
+
 async function loadMarketChartData(params: {
   itemCode?: string
   gradeName?: string
@@ -357,18 +369,22 @@ export default function MarketDetailScreen() {
   const itemName = readParamValue(params.itemName) ?? selectedQuery?.itemName ?? ''
   const unitName = readParamValue(params.unitName) ?? selectedQuery?.unitName
 
-  const [chartData, setChartData] = useState<MarketChartData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [errorMessage, setErrorMessage] = useState('')
+  const [detailState, setDetailState] = useState<MarketDetailState>(INITIAL_MARKET_DETAIL_STATE)
+  const { chartData, isLoading, errorMessage } = detailState
 
   const fetchChartData = async () => {
-    setIsLoading(true)
-    setErrorMessage('')
+    setDetailState((prev) => ({
+      ...prev,
+      isLoading: true,
+      errorMessage: '',
+    }))
 
     const result = await loadMarketChartData({ itemCode, gradeName, itemName, unitName })
-    setChartData(result.chartData)
-    setErrorMessage(result.errorMessage)
-    setIsLoading(false)
+    setDetailState({
+      chartData: result.chartData,
+      errorMessage: result.errorMessage,
+      isLoading: false,
+    })
   }
 
   useEffect(() => {
@@ -378,13 +394,18 @@ export default function MarketDetailScreen() {
       const result = await loadMarketChartData({ itemCode, gradeName, itemName, unitName })
       if (!mounted) return
 
-      setChartData(result.chartData)
-      setErrorMessage(result.errorMessage)
-      setIsLoading(false)
+      setDetailState({
+        chartData: result.chartData,
+        errorMessage: result.errorMessage,
+        isLoading: false,
+      })
     }
 
-    setIsLoading(true)
-    setErrorMessage('')
+    setDetailState((prev) => ({
+      ...prev,
+      isLoading: true,
+      errorMessage: '',
+    }))
     void run()
 
     return () => {

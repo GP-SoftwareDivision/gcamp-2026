@@ -1,10 +1,12 @@
 import { AnimatedTabBarButton } from '@/components/AnimatedTabBarButton'
 import { AndroidLayout, Colors, IS_ANDROID } from '@/constants/design'
 import { useTheme } from '@/hooks/theme'
+import { getAuthSession, subscribeAuthSession } from '@/services/storage/authStorage'
 import { BlurView } from 'expo-blur'
-import { Tabs } from 'expo-router'
+import { router, Tabs } from 'expo-router'
 import { Calendar, House, Settings, Video } from 'lucide-react-native'
-import { Platform, StyleSheet, View } from 'react-native'
+import { useEffect } from 'react'
+import { AppState, Platform, StyleSheet, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const TAB_LABELS: Record<string, string> = {
@@ -21,6 +23,42 @@ const TAB_LABELS: Record<string, string> = {
 export default function TabLayout() {
   const { isDark } = useTheme()
   const insets = useSafeAreaInsets()
+
+  useEffect(() => {
+    let mounted = true
+
+    const routeToLogin = () => {
+      if (!mounted) return
+      router.replace('/(auth)/login')
+    }
+
+    const ensureSession = async () => {
+      const session = await getAuthSession()
+      if (!session?.refreshToken?.trim()) {
+        routeToLogin()
+      }
+    }
+
+    void ensureSession()
+
+    const unsubscribe = subscribeAuthSession((session) => {
+      if (!session?.refreshToken?.trim()) {
+        routeToLogin()
+      }
+    })
+
+    const appStateSubscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        void ensureSession()
+      }
+    })
+
+    return () => {
+      mounted = false
+      unsubscribe()
+      appStateSubscription.remove()
+    }
+  }, [])
 
   const bottomPadding =
     Platform.OS === 'ios' ? 20 : IS_ANDROID ? Math.max(insets.bottom, 10) : Math.max(insets.bottom, 12)

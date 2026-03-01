@@ -3,14 +3,21 @@ import { ALL_OPTION_VALUE } from '@/constants/marketSearch'
 import { useTheme } from '@/hooks/theme'
 import { useMarketSearchOptions, useMarketSearchRecords } from '@/hooks/useMarketSearch'
 import { validateMarketSearchFilters } from '@/schemas/marketSearch'
+import {
+  createDefaultMarketSearchUiState,
+  createPresetMarketSearchUiState,
+  getNextStepFromCompletion,
+  getSelectedOptionLabel,
+  type MarketSearchUiState,
+} from '@/shared/marketSearchFlow'
 import { isNearBottomOnScroll } from '@/shared/scroll'
 import { useMarketSearchStore } from '@/store/useMarketSearchStore'
 import { formatDisplayDateFromStore, getCellValue, toDateValue } from '@/utils/marketSearch'
-import { useFocusEffect } from '@react-navigation/native'
+import { useIsFocused } from '@react-navigation/native'
 import dayjs from 'dayjs'
 import { router, useLocalSearchParams } from 'expo-router'
 import { ChevronLeft } from 'lucide-react-native'
-import { useCallback, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ActivityIndicator,
   NativeScrollEvent,
@@ -21,44 +28,13 @@ import {
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
-type SearchStep = 'item' | 'unit' | 'grade' | 'date' | 'done'
-type DateInputStep = 'start' | 'end'
-type ConfirmedDateBadges = {
-  start: boolean
-  end: boolean
-}
-type CompletedSteps = {
-  item: boolean
-  unit: boolean
-  grade: boolean
-  date: boolean
-}
 type MarketSearchRouteParams = {
   itemCode?: string
   itemName?: string
   gradeName?: string
   unitName?: string
 }
-
-const INITIAL_COMPLETED_STEPS: CompletedSteps = {
-  item: false,
-  unit: false,
-  grade: false,
-  date: false,
-}
-
-const INITIAL_CONFIRMED_DATE_BADGES: ConfirmedDateBadges = {
-  start: false,
-  end: false,
-}
 const MIN_SEARCH_START_DATE = 20230101
-
-function getNextStepFromCompletion(steps: CompletedSteps): SearchStep {
-  if (!steps.unit) return 'unit'
-  if (!steps.grade) return 'grade'
-  if (!steps.date) return 'date'
-  return 'done'
-}
 
 export default function MarketSearchScreen() {
   const routeParams = useLocalSearchParams<MarketSearchRouteParams>()
@@ -75,15 +51,19 @@ export default function MarketSearchScreen() {
   const setGrade = useMarketSearchStore((state) => state.setGrade)
   const setUnitName = useMarketSearchStore((state) => state.setUnitName)
   const resetSearch = useMarketSearchStore((state) => state.resetSearch)
+  const isFocused = useIsFocused()
 
-  const [isStartPickerOpen, setIsStartPickerOpen] = useState(false)
-  const [isEndPickerOpen, setIsEndPickerOpen] = useState(false)
-  const [activeStep, setActiveStep] = useState<SearchStep>('item')
-  const [dateInputStep, setDateInputStep] = useState<DateInputStep>('start')
-  const [completedSteps, setCompletedSteps] = useState<CompletedSteps>(INITIAL_COMPLETED_STEPS)
-  const [confirmedDateBadges, setConfirmedDateBadges] = useState<ConfirmedDateBadges>(
-    INITIAL_CONFIRMED_DATE_BADGES,
+  const [uiState, setUiState] = useState<MarketSearchUiState>(() =>
+    createDefaultMarketSearchUiState(),
   )
+  const {
+    isStartPickerOpen,
+    isEndPickerOpen,
+    activeStep,
+    dateInputStep,
+    completedSteps,
+    confirmedDateBadges,
+  } = uiState
 
   const presetItemCode =
     typeof routeParams.itemCode === 'string' && routeParams.itemCode.length > 0
@@ -150,137 +130,110 @@ export default function MarketSearchScreen() {
     }
   }
 
-  // useFocusEffect는 stable callback이 필요해 cleanup을 useCallback으로 고정합니다.
-  useFocusEffect(
-    useCallback(() => {
-      if (isPresetFlow) {
-        // [grade]에서 진입 시: 품목/무게/등급 고정, 날짜만 선택
-        setItemCode(presetItemCode)
-        setGrade(presetGradeName)
-        setUnitName(presetUnitName)
-        setStartDate(dayjs().subtract(1, 'month').format('YYYYMMDD'))
-        setEndDate(dayjs().format('YYYYMMDD'))
-        reset()
-        setIsStartPickerOpen(false)
-        setIsEndPickerOpen(false)
-        setActiveStep('date')
-        setDateInputStep('start')
-        setCompletedSteps({
-          item: true,
-          unit: true,
-          grade: true,
-          date: false,
-        })
-        setConfirmedDateBadges(INITIAL_CONFIRMED_DATE_BADGES)
-      } else {
-        // 일반 진입 시: 초기 상태
-        resetSearch()
-        reset()
-        setIsStartPickerOpen(false)
-        setIsEndPickerOpen(false)
-        setActiveStep('item')
-        setDateInputStep('start')
-        setCompletedSteps(INITIAL_COMPLETED_STEPS)
-        setConfirmedDateBadges(INITIAL_CONFIRMED_DATE_BADGES)
-      }
+  useEffect(() => {
+    if (!isFocused) {
+      resetSearch()
+      reset()
+      setUiState(createDefaultMarketSearchUiState())
+      return
+    }
 
-      return () => {
-        resetSearch()
-        reset()
-        setIsStartPickerOpen(false)
-        setIsEndPickerOpen(false)
-        setActiveStep('item')
-        setDateInputStep('start')
-        setCompletedSteps(INITIAL_COMPLETED_STEPS)
-        setConfirmedDateBadges(INITIAL_CONFIRMED_DATE_BADGES)
-      }
-    }, [
-      isPresetFlow,
-      presetGradeName,
-      presetItemCode,
-      presetUnitName,
-      resetSearch,
-      reset,
-      setEndDate,
-      setGrade,
-      setItemCode,
-      setStartDate,
-      setUnitName,
-    ]),
-  )
+    if (isPresetFlow) {
+      // [grade]에서 진입 시: 품목/무게/등급 고정, 날짜만 선택
+      setItemCode(presetItemCode)
+      setGrade(presetGradeName)
+      setUnitName(presetUnitName)
+      setStartDate(dayjs().subtract(1, 'month').format('YYYYMMDD'))
+      setEndDate(dayjs().format('YYYYMMDD'))
+      reset()
+      setUiState(createPresetMarketSearchUiState())
+      return
+    }
 
-  const getSelectedLabel = (
-    options: { label: string; value: string }[],
-    value: string,
-    fallbackLabel?: string | null,
-  ) => {
-    return options.find((option) => option.value === value)?.label ?? fallbackLabel ?? '전체'
-  }
+    // 일반 진입 시: 초기 상태
+    resetSearch()
+    reset()
+    setUiState(createDefaultMarketSearchUiState())
+  }, [
+    isFocused,
+    isPresetFlow,
+    presetGradeName,
+    presetItemCode,
+    presetUnitName,
+    resetSearch,
+    reset,
+    setEndDate,
+    setGrade,
+    setItemCode,
+    setStartDate,
+    setUnitName,
+  ])
 
-  const itemBadge = getSelectedLabel(
+  const itemBadge = getSelectedOptionLabel(
     itemOptions,
     selectedItemValue,
     presetItemName ?? presetItemCode,
   )
-  const unitBadge = getSelectedLabel(filteredUnitOptions, selectedUnitValue, presetUnitName)
-  const gradeBadge = getSelectedLabel(gradeOptions, selectedGradeValue, presetGradeName)
+  const unitBadge = getSelectedOptionLabel(filteredUnitOptions, selectedUnitValue, presetUnitName)
+  const gradeBadge = getSelectedOptionLabel(gradeOptions, selectedGradeValue, presetGradeName)
   const startDateBadge = formatDisplayDateFromStore(startDate)
   const endDateBadge = formatDisplayDateFromStore(endDate)
 
   const handleItemChange = (value: string) => {
     const nextItemCode = value === ALL_OPTION_VALUE ? null : value
     setItemCode(nextItemCode)
+    setUiState((prev) => {
+      const nextCompleted = {
+        ...prev.completedSteps,
+        item: true,
+      }
+      const nextStep = getNextStepFromCompletion(nextCompleted)
 
-    const nextCompleted: CompletedSteps = {
-      item: true,
-      unit: completedSteps.unit,
-      grade: completedSteps.grade,
-      date: completedSteps.date,
-    }
-
-    setCompletedSteps(nextCompleted)
-
-    const nextStep = getNextStepFromCompletion(nextCompleted)
-    setActiveStep(nextStep)
-    if (nextStep === 'date') {
-      setDateInputStep('start')
-    }
+      return {
+        ...prev,
+        completedSteps: nextCompleted,
+        activeStep: nextStep,
+        dateInputStep: nextStep === 'date' ? 'start' : prev.dateInputStep,
+      }
+    })
   }
 
   const handleUnitChange = (value: string) => {
     setUnitName(value === ALL_OPTION_VALUE ? null : value)
-    const nextCompleted: CompletedSteps = {
-      item: true,
-      unit: true,
-      grade: completedSteps.grade,
-      date: completedSteps.date,
-    }
+    setUiState((prev) => {
+      const nextCompleted = {
+        ...prev.completedSteps,
+        item: true,
+        unit: true,
+      }
+      const nextStep = getNextStepFromCompletion(nextCompleted)
 
-    setCompletedSteps(nextCompleted)
-
-    const nextStep = getNextStepFromCompletion(nextCompleted)
-    setActiveStep(nextStep)
-    if (nextStep === 'date') {
-      setDateInputStep('start')
-    }
+      return {
+        ...prev,
+        completedSteps: nextCompleted,
+        activeStep: nextStep,
+        dateInputStep: nextStep === 'date' ? 'start' : prev.dateInputStep,
+      }
+    })
   }
 
   const handleGradeChange = (value: string) => {
     setGrade(value === ALL_OPTION_VALUE ? null : value)
-    const nextCompleted: CompletedSteps = {
-      item: completedSteps.item || true,
-      unit: completedSteps.unit,
-      grade: true,
-      date: completedSteps.date,
-    }
+    setUiState((prev) => {
+      const nextCompleted = {
+        ...prev.completedSteps,
+        item: true,
+        grade: true,
+      }
+      const nextStep = getNextStepFromCompletion(nextCompleted)
 
-    setCompletedSteps(nextCompleted)
-
-    const nextStep = getNextStepFromCompletion(nextCompleted)
-    setActiveStep(nextStep)
-    if (nextStep === 'date') {
-      setDateInputStep('start')
-    }
+      return {
+        ...prev,
+        completedSteps: nextCompleted,
+        activeStep: nextStep,
+        dateInputStep: nextStep === 'date' ? 'start' : prev.dateInputStep,
+      }
+    })
   }
 
   return (
@@ -311,7 +264,10 @@ export default function MarketSearchScreen() {
             <Pressable
               onPress={() => {
                 if (isPresetFlow) return
-                setActiveStep('item')
+                setUiState((prev) => ({
+                  ...prev,
+                  activeStep: 'item',
+                }))
               }}
               disabled={isPresetFlow}
               className='min-h-[44px] px-4 py-2 rounded-2xl border border-border bg-card dark:border-border-dark dark:bg-card-dark'
@@ -326,7 +282,10 @@ export default function MarketSearchScreen() {
             <Pressable
               onPress={() => {
                 if (isPresetFlow) return
-                setActiveStep('unit')
+                setUiState((prev) => ({
+                  ...prev,
+                  activeStep: 'unit',
+                }))
               }}
               disabled={isPresetFlow}
               className='min-h-[44px] px-4 py-2 rounded-2xl border border-border bg-card dark:border-border-dark dark:bg-card-dark'
@@ -341,7 +300,10 @@ export default function MarketSearchScreen() {
             <Pressable
               onPress={() => {
                 if (isPresetFlow) return
-                setActiveStep('grade')
+                setUiState((prev) => ({
+                  ...prev,
+                  activeStep: 'grade',
+                }))
               }}
               disabled={isPresetFlow}
               className='min-h-[44px] px-4 py-2 rounded-2xl border border-border bg-card dark:border-border-dark dark:bg-card-dark'
@@ -355,8 +317,11 @@ export default function MarketSearchScreen() {
           {confirmedDateBadges.start ? (
             <Pressable
               onPress={() => {
-                setActiveStep('date')
-                setDateInputStep('start')
+                setUiState((prev) => ({
+                  ...prev,
+                  activeStep: 'date',
+                  dateInputStep: 'start',
+                }))
               }}
               className='min-h-[44px] px-4 py-2 rounded-2xl border border-border bg-card dark:border-border-dark dark:bg-card-dark'
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
@@ -369,8 +334,11 @@ export default function MarketSearchScreen() {
           {confirmedDateBadges.end ? (
             <Pressable
               onPress={() => {
-                setActiveStep('date')
-                setDateInputStep('end')
+                setUiState((prev) => ({
+                  ...prev,
+                  activeStep: 'date',
+                  dateInputStep: 'end',
+                }))
               }}
               className='min-h-[44px] px-4 py-2 rounded-2xl border border-border bg-card dark:border-border-dark dark:bg-card-dark'
               style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
@@ -437,7 +405,12 @@ export default function MarketSearchScreen() {
                       시작일
                     </Text>
                     <Pressable
-                      onPress={() => setIsStartPickerOpen(true)}
+                      onPress={() =>
+                        setUiState((prev) => ({
+                          ...prev,
+                          isStartPickerOpen: true,
+                        }))
+                      }
                       className='h-[52px] justify-center rounded-2xl border border-border px-3 dark:border-border-dark'
                       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                     >
@@ -454,7 +427,12 @@ export default function MarketSearchScreen() {
                       종료일
                     </Text>
                     <Pressable
-                      onPress={() => setIsEndPickerOpen(true)}
+                      onPress={() =>
+                        setUiState((prev) => ({
+                          ...prev,
+                          isEndPickerOpen: true,
+                        }))
+                      }
                       className='h-[52px] justify-center rounded-2xl border border-border px-3 dark:border-border-dark'
                       style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                     >
@@ -562,40 +540,53 @@ export default function MarketSearchScreen() {
           const isInvalidStartDate = Number(nextStartDate) < MIN_SEARCH_START_DATE
 
           setStartDate(nextStartDate)
-          setIsStartPickerOpen(false)
+          setUiState((prev) => {
+            if (isInvalidStartDate) {
+              return {
+                ...prev,
+                isStartPickerOpen: false,
+                activeStep: 'date',
+                dateInputStep: 'start',
+                completedSteps: {
+                  ...prev.completedSteps,
+                  date: false,
+                },
+                confirmedDateBadges: {
+                  start: false,
+                  end: false,
+                },
+              }
+            }
 
-          if (isInvalidStartDate) {
-            setConfirmedDateBadges({
-              start: false,
-              end: false,
-            })
-            setCompletedSteps((prev) => ({
-              item: prev.item,
-              unit: prev.unit,
-              grade: prev.grade,
-              date: false,
-            }))
-            setActiveStep('date')
-            setDateInputStep('start')
-            return
-          }
+            const nextState: MarketSearchUiState = {
+              ...prev,
+              isStartPickerOpen: false,
+              confirmedDateBadges: {
+                start: true,
+                end: false,
+              },
+            }
 
-          setConfirmedDateBadges({
-            start: true,
-            end: false,
+            if (prev.activeStep !== 'date') {
+              return nextState
+            }
+
+            return {
+              ...nextState,
+              dateInputStep: 'end',
+              completedSteps: {
+                ...prev.completedSteps,
+                date: false,
+              },
+            }
           })
-
-          if (activeStep === 'date') {
-            setCompletedSteps((prev) => ({
-              item: prev.item,
-              unit: prev.unit,
-              grade: prev.grade,
-              date: false,
-            }))
-            setDateInputStep('end')
-          }
         }}
-        onCancel={() => setIsStartPickerOpen(false)}
+        onCancel={() =>
+          setUiState((prev) => ({
+            ...prev,
+            isStartPickerOpen: false,
+          }))
+        }
       />
       <DatePicker
         isVisible={isEndPickerOpen}
@@ -603,22 +594,36 @@ export default function MarketSearchScreen() {
         date={toDateValue(endDate, new Date())}
         onConfirm={(nextDate) => {
           setEndDate(dayjs(nextDate).format('YYYYMMDD'))
-          setConfirmedDateBadges((prev) => ({
-            start: prev.start,
-            end: true,
-          }))
-          setIsEndPickerOpen(false)
-          if (activeStep === 'date') {
-            setCompletedSteps((prev) => ({
-              item: prev.item,
-              unit: prev.unit,
-              grade: prev.grade,
-              date: true,
-            }))
-            setActiveStep('done')
-          }
+          setUiState((prev) => {
+            const nextState: MarketSearchUiState = {
+              ...prev,
+              isEndPickerOpen: false,
+              confirmedDateBadges: {
+                ...prev.confirmedDateBadges,
+                end: true,
+              },
+            }
+
+            if (prev.activeStep !== 'date') {
+              return nextState
+            }
+
+            return {
+              ...nextState,
+              activeStep: 'done',
+              completedSteps: {
+                ...prev.completedSteps,
+                date: true,
+              },
+            }
+          })
         }}
-        onCancel={() => setIsEndPickerOpen(false)}
+        onCancel={() =>
+          setUiState((prev) => ({
+            ...prev,
+            isEndPickerOpen: false,
+          }))
+        }
       />
     </SafeAreaView>
   )

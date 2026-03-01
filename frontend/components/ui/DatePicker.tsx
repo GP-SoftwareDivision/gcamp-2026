@@ -1,4 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import {
+  buildDayOptions,
+  clampDayPart,
+  createDatePickerParts,
+  getMaxDayFromParts,
+  HOUR_OPTIONS,
+  MINUTE_OPTIONS,
+  MONTH_OPTIONS,
+  YEAR_OPTIONS,
+  type DatePickerParts,
+} from '@/shared/datePicker'
+import { useEffect, useState } from 'react'
 import { Modal, Pressable, Text, View } from 'react-native'
 import { Select } from './Select'
 
@@ -22,99 +33,33 @@ type SelectOption = {
   value: string
 }
 
-function pad2(value: number): string {
-  return String(value).padStart(2, '0')
-}
-
-function getDaysInMonth(year: number, month: number): number {
-  return new Date(year, month, 0).getDate()
-}
-
 // 공통 DatePicker 래퍼 컴포넌트
 // 사용 예: <DatePicker isVisible={open} mode="date" date={value} onConfirm={...} onCancel={...} />
 export function DatePicker({ isVisible, mode, date, onConfirm, onCancel }: DatePickerProps) {
-  const [year, setYear] = useState(String(date.getFullYear()))
-  const [month, setMonth] = useState(String(date.getMonth() + 1))
-  const [day, setDay] = useState(String(date.getDate()))
-  const [hour, setHour] = useState(String(date.getHours()))
-  const [minute, setMinute] = useState(String(date.getMinutes()))
+  const [parts, setParts] = useState<DatePickerParts>(() => createDatePickerParts(date))
+  const maxDay = getMaxDayFromParts(parts.year, parts.month)
+  const dayOptions: SelectOption[] = buildDayOptions(maxDay)
 
   useEffect(() => {
     if (!isVisible) return
-    setYear(String(date.getFullYear()))
-    setMonth(String(date.getMonth() + 1))
-    setDay(String(date.getDate()))
-    setHour(String(date.getHours()))
-    setMinute(String(date.getMinutes()))
+    setParts(createDatePickerParts(date))
   }, [date, isVisible])
 
-  const maxDay = useMemo(() => {
-    const parsedYear = Number(year)
-    const parsedMonth = Number(month)
-    if (!Number.isFinite(parsedYear) || !Number.isFinite(parsedMonth)) return 31
-    return getDaysInMonth(parsedYear, parsedMonth)
-  }, [year, month])
-
   useEffect(() => {
-    const parsedDay = Number(day)
-    if (!Number.isFinite(parsedDay)) return
-    if (parsedDay <= maxDay) return
-    setDay(String(maxDay))
-  }, [day, maxDay])
-
-  const yearOptions: SelectOption[] = useMemo(() => {
-    const currentYear = new Date().getFullYear()
-    const start = currentYear - 20
-    const end = currentYear + 20
-    const options: SelectOption[] = []
-    for (let value = start; value <= end; value += 1) {
-      options.push({ label: String(value), value: String(value) })
-    }
-    return options
-  }, [])
-
-  const monthOptions: SelectOption[] = useMemo(
-    () =>
-      Array.from({ length: 12 }, (_, idx) => {
-        const value = idx + 1
-        return { label: pad2(value), value: String(value) }
-      }),
-    [],
-  )
-
-  const dayOptions: SelectOption[] = useMemo(
-    () =>
-      Array.from({ length: maxDay }, (_, idx) => {
-        const value = idx + 1
-        return { label: pad2(value), value: String(value) }
-      }),
-    [maxDay],
-  )
-
-  const hourOptions: SelectOption[] = useMemo(
-    () =>
-      Array.from({ length: 24 }, (_, idx) => ({
-        label: pad2(idx),
-        value: String(idx),
-      })),
-    [],
-  )
-
-  const minuteOptions: SelectOption[] = useMemo(
-    () =>
-      Array.from({ length: 60 }, (_, idx) => ({
-        label: pad2(idx),
-        value: String(idx),
-      })),
-    [],
-  )
+    const clampedDay = clampDayPart(parts.day, maxDay)
+    if (clampedDay === parts.day) return
+    setParts((prev) => ({
+      ...prev,
+      day: clampedDay,
+    }))
+  }, [parts.day, maxDay])
 
   const handleConfirm = () => {
-    const baseYear = Number(year)
-    const baseMonth = Number(month)
-    const baseDay = Number(day)
-    const baseHour = Number(hour)
-    const baseMinute = Number(minute)
+    const baseYear = Number(parts.year)
+    const baseMonth = Number(parts.month)
+    const baseDay = Number(parts.day)
+    const baseHour = Number(parts.hour)
+    const baseMinute = Number(parts.minute)
 
     if (mode === 'time') {
       const nextTime = new Date(date)
@@ -141,18 +86,28 @@ export function DatePicker({ isVisible, mode, date, onConfirm, onCancel }: DateP
             <View className='flex-row gap-2'>
               <View className='flex-1'>
                 <Select
-                  data={hourOptions}
-                  value={hour}
-                  onChange={(item) => setHour(String(item.value))}
+                  data={HOUR_OPTIONS}
+                  value={parts.hour}
+                  onChange={(item) =>
+                    setParts((prev) => ({
+                      ...prev,
+                      hour: String(item.value),
+                    }))
+                  }
                   placeholder='시'
                   size='lg'
                 />
               </View>
               <View className='flex-1'>
                 <Select
-                  data={minuteOptions}
-                  value={minute}
-                  onChange={(item) => setMinute(String(item.value))}
+                  data={MINUTE_OPTIONS}
+                  value={parts.minute}
+                  onChange={(item) =>
+                    setParts((prev) => ({
+                      ...prev,
+                      minute: String(item.value),
+                    }))
+                  }
                   placeholder='분'
                   size='lg'
                 />
@@ -162,18 +117,28 @@ export function DatePicker({ isVisible, mode, date, onConfirm, onCancel }: DateP
             <View className='flex-row gap-2'>
               <View className='flex-1'>
                 <Select
-                  data={yearOptions}
-                  value={year}
-                  onChange={(item) => setYear(String(item.value))}
+                  data={YEAR_OPTIONS}
+                  value={parts.year}
+                  onChange={(item) =>
+                    setParts((prev) => ({
+                      ...prev,
+                      year: String(item.value),
+                    }))
+                  }
                   placeholder='년'
                   size='lg'
                 />
               </View>
               <View className='flex-1'>
                 <Select
-                  data={monthOptions}
-                  value={month}
-                  onChange={(item) => setMonth(String(item.value))}
+                  data={MONTH_OPTIONS}
+                  value={parts.month}
+                  onChange={(item) =>
+                    setParts((prev) => ({
+                      ...prev,
+                      month: String(item.value),
+                    }))
+                  }
                   placeholder='월'
                   size='lg'
                 />
@@ -181,8 +146,13 @@ export function DatePicker({ isVisible, mode, date, onConfirm, onCancel }: DateP
               <View className='flex-1'>
                 <Select
                   data={dayOptions}
-                  value={day}
-                  onChange={(item) => setDay(String(item.value))}
+                  value={parts.day}
+                  onChange={(item) =>
+                    setParts((prev) => ({
+                      ...prev,
+                      day: String(item.value),
+                    }))
+                  }
                   placeholder='일'
                   size='lg'
                 />

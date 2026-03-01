@@ -1,4 +1,4 @@
-import { getAuthSession, saveAuthSession } from '../../storage/authStorage'
+import { clearAuthSession, getAuthSession, saveAuthSession } from '../../storage/authStorage'
 import type { ApiCallOptions, CommonResultDto } from '@/types/api'
 import { getRequiredApiBaseUrl } from './config'
 import { httpClient } from './httpClient'
@@ -7,6 +7,7 @@ import { isAxiosError } from 'axios'
 
 const ACCESS_TOKEN_KEYS = ['access_token', 'accessToken', 'token', 'jwt', 'id_token', 'idToken']
 const REFRESH_TOKEN_KEYS = ['refresh_token', 'refreshToken']
+let refreshInFlight: Promise<string | null> | null = null
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
@@ -64,7 +65,7 @@ async function resolveAuthorizationHeader(includeAuth: boolean): Promise<string 
   return `Bearer ${accessToken}`
 }
 
-async function tryRefreshAccessToken(): Promise<string | null> {
+async function performRefreshAccessToken(): Promise<string | null> {
   const session = await getAuthSession()
   if (!session?.refreshToken) return null
 
@@ -82,28 +83,37 @@ async function tryRefreshAccessToken(): Promise<string | null> {
     })
 
     const accessToken = deepFindString(response.data, ACCESS_TOKEN_KEYS)
-    if (!accessToken) return null
+    if (!accessToken) {
+      await clearAuthSession()
+      return null
+    }
 
     const refreshToken = deepFindString(response.data, REFRESH_TOKEN_KEYS) ?? session.refreshToken
 
-    await saveAuthSession({
-      accessToken,
-      refreshToken,
-      username: session.username,
-      name: session.name,
-      phone: session.phone,
-      role: session.role,
-      farmAddress: session.farmAddress,
-      farmLatitude: session.farmLatitude,
-      farmLongitude: session.farmLongitude,
-      ipcamAddress: session.ipcamAddress,
-      mac: session.mac,
-    })
+    await saveAuthSession({ accessToken, refreshToken })
 
     return accessToken
-  } catch {
+  } catch (error) {
+    if (isAxiosError(error)) {
+      const status = error.response?.status
+      if (status === 401 || status === 403) {
+        await clearAuthSession()
+      }
+    }
     return null
   }
+}
+
+async function tryRefreshAccessToken(): Promise<string | null> {
+  if (refreshInFlight) {
+    return refreshInFlight
+  }
+
+  refreshInFlight = performRefreshAccessToken().finally(() => {
+    refreshInFlight = null
+  })
+
+  return refreshInFlight
 }
 
 export async function callApi<TResponse, TBody = unknown, TParams = unknown>(
@@ -169,6 +179,8 @@ export async function callApi<TResponse, TBody = unknown, TParams = unknown>(
 
         return retryData
       }
+
+      await clearAuthSession()
     }
 
     throw error

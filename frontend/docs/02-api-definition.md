@@ -139,3 +139,11 @@
 - 이제 API Base URL은 EXPO_PUBLIC_API_URL 또는 EXPO_PUBLIC_API_BASE_URL env가 없으면 fail-fast 에러를 발생시킵니다.
 ## 2026-02-27 Update (API - EAS Production Env)
 - `eas.json`의 `build.production.env`에 `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_PROJECT_ID`를 추가해 AAB 프로덕션 빌드에서도 런타임 API 환경변수가 누락되지 않도록 정리했습니다.
+
+## 2026-02-27 Update (API - Refresh Token Race Condition Fix)
+- `services/api/core/callApi.ts`에 refresh token 재발급 single-flight 로직을 추가해 동시 401 상황에서도 refresh 요청이 1회만 수행되도록 수정했습니다.
+- refresh 응답이 401/403일 경우 세션을 즉시 정리하도록 처리해, 만료 세션이 남아서 빈 데이터 화면으로 진입하는 문제를 방지했습니다.
+
+## 2026-03-01 Update (API - Expired Refresh Token Hard Fail)
+- refresh 응답에서 access token을 복구하지 못한 경우에도 세션을 즉시 정리하도록 `callApi`를 보강했습니다.
+- 인증 요청이 401로 실패하고 refresh 재발급이 실패하면 세션을 강제 정리해, 이후 탭 레이아웃 가드가 로그인 화면으로 즉시 전환할 수 있도록 동작을 일원화했습니다.
