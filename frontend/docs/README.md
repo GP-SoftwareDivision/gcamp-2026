@@ -1,13 +1,13 @@
-# G-CAMP 2026 Test App 문서 인덱스
+# G-CAMP 2026 테스트 앱 문서 인덱스
 
 이 디렉터리는 2026-02-24 기준 소스코드를 바탕으로 재작성한 기준 문서다.
 
 ## 문서 목록
-- [00-unified-project-guide.md](./00-unified-project-guide.md)
-- [00-workflow-guidelines.md](./00-workflow-guidelines.md)
-- [01-architecture-definition.md](./01-architecture-definition.md)
-- [02-api-definition.md](./02-api-definition.md)
-- [03-design-definition.md](./03-design-definition.md)
+- [프로젝트 통합 가이드](./00-unified-project-guide.md)
+- [작업 방식 통합 가이드](./00-workflow-guidelines.md)
+- [아키텍처 정의서](./01-architecture-definition.md)
+- [API 명세서](./02-api-definition.md)
+- [디자인 정의서](./03-design-definition.md)
 
 ## 문서 원칙
 - 구현 코드 기준으로 작성

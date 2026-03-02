@@ -106,6 +106,12 @@ export default function LoginScreen() {
               }
             }
           }
+          if (!profile) {
+            await clearAuthSession()
+            setIpcamAddress(undefined)
+            return
+          }
+
           const currentSession = await getAuthSession()
           const hasUsableAccessToken = Boolean(currentSession?.accessToken?.trim())
 

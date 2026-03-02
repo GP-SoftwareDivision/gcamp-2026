@@ -1,10 +1,16 @@
-﻿import { useFocusEffect } from '@react-navigation/native'
-import { Card, ScreenLoader, ScreenScroll, SectionLabel, TabHeader } from '@/components/ui'
+import { useFocusEffect } from '@react-navigation/native'
+import { Button, Card, ScreenLoader, ScreenScroll, SectionLabel, TabHeader } from '@/components/ui'
 import { useMarketRecentlySWR } from '@/hooks/swr'
+import {
+  MARKET_CATEGORY_FILTER_OPTIONS,
+  type MarketCategoryFilterId,
+  filterMarketSectionsByCategory,
+} from '@/shared/marketCategory'
 import { useMarketStore } from '@/store/marketStore'
 import { router } from 'expo-router'
 import { Search } from 'lucide-react-native'
-import { Text, View } from 'react-native'
+import { useState } from 'react'
+import { ScrollView, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 function getItemNameFromLabel(label: string, fallback: string): string {
@@ -14,6 +20,7 @@ function getItemNameFromLabel(label: string, fallback: string): string {
 }
 
 export default function MarketListScreen() {
+  const [selectedCategory, setSelectedCategory] = useState<MarketCategoryFilterId>('all')
   const sections = useMarketStore((state) => state.sections)
   const isLoadingStore = useMarketStore((state) => state.isLoading)
   const fetchRecentlyPrices = useMarketStore((state) => state.fetchRecentlyPrices)
@@ -21,6 +28,7 @@ export default function MarketListScreen() {
 
   const { isValidating } = useMarketRecentlySWR()
   const isLoading = isLoadingStore || (isValidating && sections.length === 0)
+  const filteredSections = filterMarketSectionsByCategory(sections, selectedCategory)
 
   const handleRefetch = async () => {
     await fetchRecentlyPrices({ force: true })
@@ -45,10 +53,40 @@ export default function MarketListScreen() {
         onRefetch={handleRefetch}
         contentContainerClassName='px-5 pt-2 pb-24'
       >
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className='mb-4'
+          contentContainerStyle={{ gap: 8, paddingRight: 8 }}
+        >
+          {MARKET_CATEGORY_FILTER_OPTIONS.map((option) => {
+            const isSelected = selectedCategory === option.id
+
+            return (
+              <Button
+                key={option.id}
+                title={option.label}
+                size='sm'
+                variant={isSelected ? 'primary' : 'secondary'}
+                className='h-[44px] rounded-2xl px-5'
+                onPress={() => setSelectedCategory(option.id)}
+              />
+            )
+          })}
+        </ScrollView>
+
         {isLoading && sections.length === 0 ? <ScreenLoader fullScreen={false} /> : null}
 
-        {sections.map((section, sectionIndex) => {
-          const sectionClassName = sectionIndex < sections.length - 1 ? 'mb-2' : ''
+        {!isLoading && filteredSections.length === 0 ? (
+          <View className='rounded-2xl border border-border bg-card px-4 py-5 dark:border-border-dark dark:bg-card-dark'>
+            <Text className='text-subhead text-content-secondary dark:text-content-dark-secondary'>
+              선택한 품목의 시세가 없습니다.
+            </Text>
+          </View>
+        ) : null}
+
+        {filteredSections.map((section, sectionIndex) => {
+          const sectionClassName = sectionIndex < filteredSections.length - 1 ? 'mb-2' : ''
 
           return (
             <View key={section.title} className={sectionClassName}>
@@ -126,4 +164,3 @@ export default function MarketListScreen() {
     </SafeAreaView>
   )
 }
-

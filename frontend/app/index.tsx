@@ -45,6 +45,13 @@ export default function Index() {
                 }
               }
             }
+            if (!profile) {
+              await clearAuthSession()
+              setIpcamAddress(undefined)
+              setTargetRoute('/(auth)/login')
+              return
+            }
+
             const currentSession = await getAuthSession()
             const hasUsableAccessToken = Boolean(currentSession?.accessToken?.trim())
 

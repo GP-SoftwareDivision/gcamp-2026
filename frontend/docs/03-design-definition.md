@@ -60,7 +60,7 @@
 
 ---
 
-## 📅 Update Logs (2026-02-24 ~ 2026-02-25)
+## 📅 업데이트 로그 (2026-02-24 ~ 2026-02-25)
 
 **[2026-02-24] UI 및 레이아웃 개선**
 
@@ -91,52 +91,52 @@
 
 - **Log 43:** 홈의 센서 카드의 EC(전기전도도) 표시 단위를 `dS/m`로 변경했습니다. EC 센서 API 응답값(`uS/cm`)을 화면 표시 시에 `값 / 1000` 연산하여 `dS/m`로 보여주도록 수정했습니다. 센서 상세(EC) 화면의 상단값/비교값/차트 수치도 모두 변경된 단위(`dS/m`) 기준으로 표기합니다.
 
-## 44. Update Log (2026-02-26)
+## 44. 업데이트 로그 (2026-02-26)
 - 공통 UI 컴포넌트로 `DatePicker`(`components/ui/DatePicker.tsx`)를 추가했습니다.
 - `react-native-modal-datetime-picker` 기반으로 `isVisible`, `mode`, `date`, `onConfirm`, `onCancel` props를 래핑했습니다.
 - `components/ui/index.ts`에 DatePicker export를 추가했습니다.
 
-## 45. Update Log (2026-02-26)
+## 45. 업데이트 로그 (2026-02-26)
 - 출하시기 목록 화면(`app/(tabs)/market/index.tsx`)에서 섹션 타이틀을 직접 `Text` 렌더링에서 공통 `SectionLabel` 컴포넌트로 변경해 타이틀-카드 간격 기준을 홈/설정 화면과 통일했습니다.
 - 같은 화면의 스크롤 컨테이너 상단 여백을 `pt-2`로 보정하고 카드 행 간격을 `mb-5`로 조정해 카드가 붙어 보이던 밀집감을 완화했습니다.
 
-## 46. Update Log (2026-02-26)
+## 46. 업데이트 로그 (2026-02-26)
 - 설정 화면(`app/(tabs)/settings/index.tsx`)의 `계정전환` 라벨에서 `font-medium`을 제거해, 다른 메뉴 항목과 동일한 텍스트 굵기(`text-body`)로 통일했습니다.
 
 
-## 2026-02-26 Update (UI)
-- Added a pressable Search icon on the right side of the Market header and wired navigation to /market/search.
-- Implemented a new Market Search screen with filter controls (Start Date, End Date, dropdown selector, and Search button).
-- Implemented an Excel-like results table using horizontal ScrollView + vertical FlatList, with fixed-width columns and grid borders for priceDate, marketName, itemName, unitName, gradeName, and averagePrice.
+## 2026-02-26 업데이트 (UI)
+- 마켓 헤더 우측에 누를 수 있는 검색 아이콘을 추가하고, `/market/search`로 이동하도록 내비게이션을 연결했습니다.
+- 필터 제어(시작일, 종료일, 드롭다운 선택기, 조회 버튼)를 갖춘 신규 시세 검색 화면을 구현했습니다.
+- 가로 `ScrollView` + 세로 `FlatList` 조합으로 엑셀 형태 결과 테이블을 구현했고, `priceDate`, `marketName`, `itemName`, `unitName`, `gradeName`, `averagePrice` 컬럼에 고정 너비와 그리드 테두리를 적용했습니다.
 
-## 2026-02-26 Update (UI - Market Search Sub Header)
-- Replaced the Market Search page top header from TabHeader to the same custom sub-header pattern used in 고객센터 (left back chevron + title with bottom border).
-- Back button now returns to market/index by navigation to /market while preserving existing DatePicker, Select, and Excel-like table layout.
-## 2026-02-26 Update (UI - Search Filter Mapping)
-- Updated Market Search dropdown to map options dynamically from /api/market/prices/recently and prepend default 전체 option.
-- Dropdown option value now carries structured filter fields { itemCode, unit, grade } and uses them directly for search requests.
-- DatePicker UI updated with display='spinner' while keeping Korean locale (ko-KR) and iOS confirm/cancel labels (확인/취소).
+## 2026-02-26 업데이트 (UI - 시세 검색 서브 헤더)
+- 시세 검색 화면 상단 헤더를 `TabHeader`에서 고객센터와 동일한 커스텀 서브 헤더 패턴(좌측 뒤로가기 + 하단 보더 포함 제목)으로 교체했습니다.
+- 뒤로가기 버튼은 기존 `DatePicker`, `Select`, 엑셀형 테이블 레이아웃을 유지한 채 `/market`(`market/index`)으로 복귀하도록 변경했습니다.
+## 2026-02-26 업데이트 (UI - 검색 필터 매핑)
+- 시세 검색 드롭다운 옵션을 `/api/market/prices/recently` 응답 기준으로 동적 매핑하고, 기본 `전체` 옵션을 선행 추가하도록 변경했습니다.
+- 드롭다운 옵션 값이 `{ itemCode, unit, grade }` 구조화 필드를 직접 보유하고, 이를 검색 요청에 바로 사용하도록 정리했습니다.
+- DatePicker UI는 `display='spinner'`를 유지하면서 한국어 로케일(`ko-KR`)과 iOS 확인/취소 라벨을 적용했습니다.
 
-## 2026-02-26 Update (UI - Search 5 Fields + Validation)
-- Refactored search filter UI into exactly five fields: 시작일, 종료일, 품목, 단위, 등급.
-- Removed merged 품목/등급 selector and bound all five fields to the new global Zustand store.
-- Added zod validation to disable 조회하기 button when any required field is empty or when 종료일 < 시작일.
-- 조회하기 button now switches visual state with validation: invalid = bg-gray-400, valid = bg-black.
+## 2026-02-26 업데이트 (UI - 검색 5개 필드 + 검증)
+- 검색 필터 UI를 시작일, 종료일, 품목, 단위, 등급의 정확히 5개 필드로 재구성했습니다.
+- 병합되어 있던 품목/등급 선택기를 제거하고 5개 필드를 전역 Zustand 스토어에 연결했습니다.
+- 필수 필드 누락 또는 `종료일 < 시작일`일 때 조회 버튼이 비활성화되도록 zod 검증을 추가했습니다.
+- 검증 상태에 따라 조회 버튼 시각 상태가 변경되도록 정리했습니다(`invalid = bg-gray-400`, `valid = bg-black`).
 
 
-## 2026-02-26 Update (UI - DatePicker Replacement)
+## 2026-02-26 업데이트 (UI - DatePicker 교체)
 - components/ui/DatePicker.tsx를 react-native-modal-datetime-picker 래퍼에서 @react-native-community/datetimepicker 기반 커스텀 모달로 교체했습니다.
 - DatePicker에 locale='ko-KR', display='spinner', themeVariant='light', textColor='black'를 적용하고, 하단 액션 버튼을 취소/확인으로 고정해 UI 일관성과 가독성을 개선했습니다.
 
-## 2026-02-26 Update (UI - DatePicker Custom Korean Select)
+## 2026-02-26 업데이트 (UI - DatePicker 한글 커스텀 선택)
 - DatePicker를 연/월/일(또는 시/분) Select 조합 기반 커스텀 모달로 전환해 Android에서 발생하던 네이티브 Picker 겹침 이슈를 제거했습니다.
 - DatePicker 컨테이너와 액션 버튼 라운드를 Select와 동일한 rounded-2xl 기준으로 통일했습니다.
 - Picker 내부 라벨을 년/월/일(시/분) 한글 표기로 통일해 영어 월 약어 노출 문제를 제거했습니다.
-## 2026-02-26 Update (UI - DatePicker Size Tuning)
+## 2026-02-26 업데이트 (UI - DatePicker 크기 조정)
 - DatePicker 모달 폭/패딩/버튼 높이를 키워 전체 컨트롤 가시성을 확대했습니다.
 - DatePicker 상단의 년/월/일 텍스트 라벨을 제거하고 선택 박스 자체만으로 조작하도록 단순화했습니다.
 - DatePicker 내부 Select를 size='lg'로 적용해 입력 박스 높이와 텍스트 크기를 확대했습니다.
-## 2026-02-26 Update (UI - Search Result Column Scope)
+## 2026-02-26 업데이트 (UI - 검색 결과 컬럼 범위)
 - 시세 검색 결과 테이블 컬럼을 요청 필드 기준으로 정리했습니다.
 - 화면 출력 컬럼: `priceDate`, `itemName`, `gradeName`, `unitName`, `averagePrice`.
 - `/recently` 기반 필터 옵션은 `전체(null)`를 포함해 품목/단위/등급 각각 분리 생성되도록 유지했습니다.
@@ -163,7 +163,7 @@
 - 시작일 선택 완료 시 종료일 단계로 자동 전환되며, 날짜 배지 클릭 시 다시 시작일 단계부터 수정할 수 있습니다.
 - 검색 조건 배지 영역을 줄바꿈 레이아웃에서 가로 스크롤 1줄 레이아웃으로 변경해 시작일/종료일 배지가 겹치거나 잘리는 문제를 방지했습니다.
 
-## 2026-02-26 Update (UI - 시세 검색 접근성/조작성 개선)
+## 2026-02-26 업데이트 (UI - 시세 검색 접근성/조작성 개선)
 - 시세 검색 조건 배지 영역을 가로 스크롤 방식에서 줄바꿈(`flex-wrap`) 방식으로 변경해, 어르신 사용자 기준에서도 좌우 스와이프 없이 조건을 바로 확인할 수 있게 했습니다.
 - 날짜 단계에서 중복 액션이던 `조건 적용` 버튼을 제거하고, 데이트피커 `확인`만으로 단계 완료되도록 단순화했습니다.
 - 날짜 단계의 `다음` 버튼도 제거하여 조작 단계를 줄였고, 시작일 선택 후 종료일 단계 전환은 데이트피커 확인 시 자동으로 처리되도록 유지했습니다.
@@ -190,29 +190,41 @@
 - 고객센터 연락처 카드의 행-디바이더 간격 답답함을 완화하기 위해 행 패딩을 `px-4 py-[18px]`로 확장하고, 디바이더를 인셋(`h-px mx-4`) 형태로 조정했습니다.
 - 고객센터 카드 높이를 설정 메인 화면과 동일하게 맞추기 위해 연락처/이메일/운영안내 행 패딩을 `p-4` 기준으로 통일했습니다.
 
-## 2026-02-26 Update (UI - Market Search Validation Feedback)
+## 2026-02-26 업데이트 (UI - 시세 검색 검증 피드백)
 - 시세 검색 화면에서 Zod 검증 실패 시 조회하기 버튼 비활성화만 하지 않고, 버튼 아래에 검증 메시지를 즉시 노출하도록 변경했습니다.
 
-## 2026-02-26 Update (UI - Start Date Immediate Validation)
+## 2026-02-26 업데이트 (UI - 시작일 즉시 검증)
 - 시세 검색에서 시작일 선택 즉시 20230101 기준을 검증하도록 보강했습니다. 유효하지 않은 날짜(2023년 미만) 선택 시 즉시 에러를 노출하고, 시작일/종료일 배지는 확정되지 않도록 처리했습니다.
 
-## 2026-02-26 Update (UI - Error Message Text Only)
+## 2026-02-26 업데이트 (UI - 에러 메시지 텍스트 전용)
 - 로그인 및 시세 검색 화면의 에러 UI를 카드/배경 박스 형태에서 텍스트 전용 형태로 통일했습니다.
 
-## 2026-03-01 Update (UI - 센서 임계치 입력 카드)
+## 2026-03-01 업데이트 (UI - 센서 임계치 입력 카드)
 - 센서 상세 화면(`app/(tabs)/home/sensor/[id].tsx`)의 현재값 카드 아래에 `임계치 설정` 카드를 추가했습니다.
 - 임계치 입력은 가로 2칸이 아닌 세로 2줄(최소값/최대값)로 배치해 CO2/광량처럼 4자리 이상 수치에서도 입력 텍스트가 깨지지 않도록 구성했습니다.
 - 입력 필드는 센서 타입별 단위 표기(`℃`, `ppm`, `W/m²` 등)와 허용 범위 안내를 함께 표시하고, `최소값 < 최대값` 검증 실패 시 에러 메시지를 노출합니다.
 - 저장 버튼(`임계치 저장`)을 추가해 사용자가 센서별 임계치를 명시적으로 확정할 수 있도록 했습니다.
 
-## 2026-03-01 Update (UI - 센서 임계치 설정 모달 전환)
+## 2026-03-01 업데이트 (UI - 센서 임계치 설정 모달 전환)
 - 센서 상세 헤더 우측에 `lucide-react-native` 아이콘 버튼(설정 진입)을 추가하고, 버튼 탭 시 `임계치 설정` 모달이 열리도록 변경했습니다.
 - 본문 카드형 임계치 UI는 제거하고, 모달 내부에서 최소값/최대값을 세로 입력 방식으로 구성했습니다.
 - 사용자 자유 입력 정책에 맞춰 허용 범위 안내 문구와 범위 제한 검증을 제거했습니다. 현재는 `최소값이 최대값보다 큰 경우`만 에러 처리합니다.
 - 모달 내 `저장` 버튼은 즉시 완료가 아니라 확인 모달을 띄우고, 확인 모달의 `취소/완료` 선택 후에 저장이 반영되도록 플로우를 변경했습니다.
 
-## 2026-03-01 Update (UI - 센서 임계치 확인 UX 단순화)
+## 2026-03-01 업데이트 (UI - 센서 임계치 확인 UX 단순화)
 - `모달 위 모달` 구조를 제거하고, 임계치 설정 모달 내부에서 `편집 화면 -> 저장 확인 화면`으로 전환되는 단일 모달 플로우로 변경했습니다.
 - 저장 확인 단계는 동일 모달 내 `취소/완료` 버튼만 제공해 시각적 중첩과 포커스 분산을 줄였습니다.
 - 최소값/최대값은 각각 선택 입력으로 유지하고, 둘 중 하나만 입력해도 저장 가능하도록 UX를 정리했습니다.
 - 현재 설정 표시는 부분 입력 상태를 반영해 `최소/최대` 각각 `미설정` 표기까지 노출하도록 보강했습니다.
+
+## 2026-03-03 업데이트 (UI - 출하시기 품목 가로 탭 필터)
+- 출하시기 메인 화면(`app/(tabs)/market/index.tsx`) 상단에 가로 스크롤 탭 필터를 추가했습니다.
+- 탭 항목은 `전체`, `대추방울 토마토`, `방울토마토`, `토마토`, `토마토 완숙`으로 구성하고, 기존 카드 디자인은 유지한 채 선택 품목 섹션만 노출되도록 적용했습니다.
+- 탭 UI는 공통 `Button` 컴포넌트를 재사용해 선택 상태(`primary`)와 비선택 상태(`secondary`)를 명확히 구분했습니다.
+- 탭 버튼 높이를 `h-[44px]`로 통일해 센서 상세 화면의 기간 탭과 동일한 크기 체계로 맞췄습니다.
+- 선택한 품목에 해당하는 데이터가 없을 때는 빈 상태 안내(`선택한 품목의 시세가 없습니다.`)를 노출하도록 보강했습니다.
+
+## 2026-03-03 업데이트 (UI - 카메라 연결 오류 오버레이 정리)
+- 카메라 연결 오류 안내를 플레이어 하단 영역이 아닌 플레이어 위 오버레이로 이동했습니다(`app/(tabs)/camera/index.tsx`).
+- 오류 상태에서 기존 번개 아이콘(`Zap`)은 제거하고 문구만 노출하도록 정리했습니다.
+- `접속이 원활하지 않습니다` 문구 크기를 `네트워크 연결을 확인해 주세요`와 동일한 `text-subhead`로 통일했습니다.

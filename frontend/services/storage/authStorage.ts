@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store'
+import { decode as base64Decode } from 'base-64'
 import type { ConsentState, StoredAuthSession } from '@/types/storage'
 
 const STORAGE_KEYS = {
@@ -28,6 +29,45 @@ const LEGACY_STORAGE_KEYS = {
 type AuthSessionListener = (session: StoredAuthSession | null) => void
 
 const authSessionListeners = new Set<AuthSessionListener>()
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
+  return value as Record<string, unknown>
+}
+
+function normalizeBase64Url(base64Url: string): string {
+  const normalized = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+  const padding = normalized.length % 4
+  if (padding === 0) return normalized
+  return normalized + '='.repeat(4 - padding)
+}
+
+function readJwtExp(token: string): number | null {
+  const parts = token.split('.')
+  if (parts.length < 2) return null
+
+  try {
+    const payloadJson = base64Decode(normalizeBase64Url(parts[1]))
+    const payload = asRecord(JSON.parse(payloadJson))
+    const exp = payload?.exp
+
+    if (typeof exp === 'number' && Number.isFinite(exp)) return exp
+    if (typeof exp === 'string') {
+      const parsed = Number(exp.trim())
+      if (Number.isFinite(parsed)) return parsed
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+function isJwtExpired(token: string): boolean {
+  const exp = readJwtExp(token)
+  if (!exp) return false
+  return Date.now() >= exp * 1000
+}
 
 function notifyAuthSessionChanged(session: StoredAuthSession | null) {
   for (const listener of authSessionListeners) {
@@ -62,6 +102,10 @@ export async function getAuthSession(): Promise<StoredAuthSession | null> {
 
   const refreshToken = refreshTokenRaw?.trim()
   if (!refreshToken) return null
+  if (isJwtExpired(refreshToken)) {
+    await clearAuthSession()
+    return null
+  }
 
   const accessToken = accessTokenRaw?.trim() ?? ''
 

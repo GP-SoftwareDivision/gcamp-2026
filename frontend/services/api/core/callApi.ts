@@ -8,6 +8,7 @@ import { isAxiosError } from 'axios'
 const ACCESS_TOKEN_KEYS = ['access_token', 'accessToken', 'token', 'jwt', 'id_token', 'idToken']
 const REFRESH_TOKEN_KEYS = ['refresh_token', 'refreshToken']
 let refreshInFlight: Promise<string | null> | null = null
+const AUTH_EXPIRED_STATUSES = new Set([401, 403])
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
@@ -22,9 +23,7 @@ function pickString(value: unknown): string | undefined {
 
 function deepFindString(source: unknown, keys: string[], depth = 0): string | undefined {
   if (depth > 5) return undefined
-
-  const direct = pickString(source)
-  if (direct) return direct
+  if (typeof source === 'string') return undefined
 
   if (Array.isArray(source)) {
     for (const item of source) {
@@ -155,7 +154,10 @@ export async function callApi<TResponse, TBody = unknown, TParams = unknown>(
 
     return responseData
   } catch (error) {
-    if (includeAuth && isAxiosError(error) && error.response?.status === 401) {
+    const status = isAxiosError(error) ? error.response?.status : undefined
+    const isAuthExpired = status !== undefined && AUTH_EXPIRED_STATUSES.has(status)
+
+    if (includeAuth && isAuthExpired) {
       const refreshedAccessToken = await tryRefreshAccessToken()
       if (refreshedAccessToken) {
         const retryHeaders = {
@@ -164,20 +166,30 @@ export async function callApi<TResponse, TBody = unknown, TParams = unknown>(
         }
         const retryHasHeaders = Object.keys(retryHeaders).length > 0
 
-        const retryResponse = await httpClient.request<TResponse | CommonResultDto<TResponse>>({
-          method,
-          url,
-          timeout: timeoutMs,
-          data,
-          params,
-          headers: retryHasHeaders ? retryHeaders : undefined,
-        })
+        try {
+          const retryResponse = await httpClient.request<TResponse | CommonResultDto<TResponse>>({
+            method,
+            url,
+            timeout: timeoutMs,
+            data,
+            params,
+            headers: retryHasHeaders ? retryHeaders : undefined,
+          })
 
-        const retryData = unwrapResult
-          ? unwrapCommonResult<TResponse>(retryResponse.data)
-          : (retryResponse.data as TResponse)
+          const retryData = unwrapResult
+            ? unwrapCommonResult<TResponse>(retryResponse.data)
+            : (retryResponse.data as TResponse)
 
-        return retryData
+          return retryData
+        } catch (retryError) {
+          if (isAxiosError(retryError)) {
+            const retryStatus = retryError.response?.status
+            if (retryStatus !== undefined && AUTH_EXPIRED_STATUSES.has(retryStatus)) {
+              await clearAuthSession()
+            }
+          }
+          throw retryError
+        }
       }
 
       await clearAuthSession()

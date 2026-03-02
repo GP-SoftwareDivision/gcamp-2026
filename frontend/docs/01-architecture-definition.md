@@ -84,7 +84,7 @@
 
 ---
 
-## 📅 Update Logs (2026-02-24 ~ 2026-02-25)
+## 📅 업데이트 로그 (2026-02-24 ~ 2026-02-25)
 
 **[2026-02-24] UI 및 뷰포트 개선**
 
@@ -121,38 +121,38 @@
 - Expo config plugin에 `@react-native-community/datetimepicker`를 등록했습니다.
 
 
-## 2026-02-26 Update (Architecture)
-- Added a new Market Search route screen at app/(tabs)/market/search.tsx.
-- Updated tab routing in app/(tabs)/_layout.tsx to register market/search as a hidden tab route (href: null).
-- Extended shared TabHeader (components/ui/TabHeader.tsx) to support an optional right-side pressable action for header-level navigation controls.
+## 2026-02-26 업데이트 (아키텍처)
+- `app/(tabs)/market/search.tsx`에 시세 검색 라우트 화면을 새로 추가했습니다.
+- `app/(tabs)/_layout.tsx` 탭 라우팅에 `market/search` 숨김 탭 라우트(`href: null`)를 등록했습니다.
+- 공통 `TabHeader`(`components/ui/TabHeader.tsx`)에 헤더 우측 내비게이션 제어를 위한 선택형 우측 `Pressable` 액션을 확장했습니다.
 
-## 2026-02-26 Update (Architecture - Market Search Refactor)
-- Moved Market Search screen from app/(tabs)/market/search.tsx to app/(tabs)/market/search/index.tsx to align with sub-screen folder architecture.
-- Kept route path as /market/search and handled it as a file-based sub-route (no direct Tabs.Screen registration).
+## 2026-02-26 업데이트 (아키텍처 - 시세 검색 리팩터링)
+- 시세 검색 화면을 `app/(tabs)/market/search.tsx`에서 `app/(tabs)/market/search/index.tsx`로 이동해 서브 화면 폴더 구조와 정렬했습니다.
+- 라우트 경로는 `/market/search`를 유지하고 파일 기반 서브 라우트로 처리했습니다(`Tabs.Screen` 직접 등록 없음).
 
-## 2026-02-26 Update (Architecture - Search Tab Visibility)
-- Added Tabs hidden entry market/search/index in app/(tabs)/_layout.tsx with options={{ href: null, headerShown: false }}.
-- Kept Search navigation path as /market/search from market/index.tsx and routed it to the folder-based sub-screen market/search/index.tsx.
+## 2026-02-26 업데이트 (아키텍처 - 검색 탭 가시성)
+- `app/(tabs)/_layout.tsx`에 `market/search/index` 숨김 탭 엔트리를 `options={{ href: null, headerShown: false }}`로 추가했습니다.
+- `market/index.tsx`의 검색 이동 경로는 `/market/search`를 유지하고 폴더 기반 서브 화면인 `market/search/index.tsx`로 라우팅되도록 정리했습니다.
 
-## 2026-02-26 Update (Architecture - Market Search Store)
-- Added global Zustand store at store/useMarketSearchStore.ts.
-- Store state fields: startDate, endDate, itemCode, grade, unitName.
-- Added update actions for each field and resetSearch action with default date re-initialization (startDate: 1 month ago, endDate: today).
+## 2026-02-26 업데이트 (아키텍처 - 시세 검색 스토어)
+- `store/useMarketSearchStore.ts`에 전역 Zustand 스토어를 추가했습니다.
+- 스토어 상태 필드는 `startDate`, `endDate`, `itemCode`, `grade`, `unitName`으로 구성했습니다.
+- 각 필드별 업데이트 액션과 기본 날짜 재초기화(`startDate: 1개월 전`, `endDate: 오늘`)가 포함된 `resetSearch` 액션을 추가했습니다.
 
-## 2026-02-26 Update (Architecture - Market Search Module Split)
+## 2026-02-26 업데이트 (아키텍처 - 시세 검색 모듈 분리)
 - `app/(tabs)/market/search/index.tsx` 단일 파일 구조를 모듈 구조로 분리했습니다: `constants.ts`, `types.ts`, `schema.ts`, `utils.ts`, `api.ts`, `hooks.ts`.
 - 검색 화면 import 경로를 `@/store/useMarketSearchStore`에서 `@/store/useMarketSearchStore`로 통일했습니다.
 - 중복 스토어 파일 `store/useMarketSearchStore.ts`를 제거하고 `stores/useMarketSearchStore.ts` 단일 소스로 정리했습니다.
 
 
-## 2026-02-26 Update (Architecture - Store Directory Standardization)
+## 2026-02-26 업데이트 (아키텍처 - 스토어 디렉터리 표준화)
 - Zustand 상태 파일 디렉터리를 `stores/`에서 `store/`로 단일화했습니다.
 - 전역 import 경로를 `@/stores/*`에서 `@/store/*`로 일괄 정리했습니다.
 - 빈 `stores` 디렉터리를 제거하고 상태 관리 파일은 `store/`에만 유지합니다.
 - 검색 검증 스키마를 화면 폴더에서 분리하여 `schemas/marketSearch.ts`로 이동했습니다.
 - `app/(tabs)/market/search/index.tsx`는 `@/schemas/marketSearch`를 사용하도록 변경했습니다.
 
-## 2026-02-26 Update (Architecture - Zod Schema Centralization)
+## 2026-02-26 업데이트 (아키텍처 - Zod 스키마 중앙화)
 - `app/(auth)/login.tsx`의 `loginSchema`를 `schemas/auth/login.ts`로 분리했습니다.
 - 프로젝트 내 `zod` import 사용 위치를 `schemas/` 디렉터리로 일원화했습니다.
 - `MarketSearchSchemaInput` 타입을 `schemas/marketSearch.ts`에서 `types/schemas/marketSearch.ts`로 이동하고, 스키마 파일은 타입 import만 사용하도록 정리했습니다.
@@ -176,32 +176,51 @@
 - iOS EAS 빌드 프롬프트 제거를 위해 `app.json`의 `expo.ios.infoPlist`에 `ITSAppUsesNonExemptEncryption: false`를 명시했습니다.
 - 최상위 `READ.md`를 인덱스 문서에서 통합 온보딩 문서로 재구성했습니다. 아키텍처, 디자인 패턴, 스타일 가이드, Expo/EAS 운영 방법을 한 파일에서 확인할 수 있도록 정리했습니다.
 
-## 2026-02-27 Update (Architecture - React Compiler State Refactor)
+## 2026-02-27 업데이트 (아키텍처 - React Compiler 상태 리팩터링)
 - 시세 검색 플로우의 UI 상태를 다중 `useState`에서 단일 객체 상태(`MarketSearchUiState`)로 통합했습니다.
 - 시세 검색 데이터 훅(`hooks/useMarketSearch.ts`)의 옵션/결과 상태를 각각 객체 상태로 통합해 상태 분산을 줄였습니다.
 - 출하시기 상세(`app/(tabs)/market/[grade].tsx`)의 로딩/에러/차트 데이터를 단일 상태(`MarketDetailState`)로 통합했습니다.
 - 공통 플로우/옵션 계산 로직을 `shared/marketSearchFlow.ts`, `shared/datePicker.ts`로 분리해 화면 컴포넌트의 책임을 축소했습니다.
 - 포커스 초기화 로직을 `useFocusEffect + useCallback` 조합에서 `useIsFocused + useEffect` 기반으로 단순화했습니다.
 
-## 2026-02-27 Update (Architecture - Dev Script Alias)
+## 2026-02-27 업데이트 (아키텍처 - 개발 스크립트 별칭)
 - `package.json` scripts에 `expo:android` alias를 추가했습니다. 기존 `android`와 동일하게 `expo start --offline --android`를 실행합니다.
 
-## 2026-02-27 Update (Architecture - Auth Session Recovery Hardening)
+## 2026-02-27 업데이트 (아키텍처 - 인증 세션 복구 강화)
 - 토큰 만료 시 동시 API 호출에서 refresh 요청이 중복으로 발생하지 않도록, 단일 in-flight refresh(single-flight) 구조를 적용했습니다.
 - 로그인 화면 부트스트랩에서 세션 복원 시 프로필 정보를 함께 하이드레이션하도록 보강했습니다(이름/연락처/농장 위치).
 - 앱 진입 시 `farm/me` 호출이 401/403으로 실패하면 세션을 정리하고 로그인 화면으로 안전하게 분기하도록 변경했습니다.
 
-## 2026-03-01 Update (Architecture - Sensor Threshold Preferences)
+## 2026-03-01 업데이트 (아키텍처 - 센서 임계치 설정 상태)
 - 센서 임계치 상태를 `store/useSensorThresholdStore.ts` 전용 Zustand 스토어로 분리했습니다.
 - 전용 타입을 `types/stores/sensorThreshold.ts`로 분리해 스토어 상태/액션 타입을 명시적으로 관리합니다.
 - 임계치 입력 검증은 `schemas/sensorThreshold.ts`(zod) + `types/schemas/sensorThreshold.ts` 조합으로 분리해 화면에서 스키마 검증만 호출하도록 정리했습니다.
 - 센서 상세 화면(`app/(tabs)/home/sensor/[id].tsx`)은 로컬 `useState` 대신 임계치 모달 상태를 전용 스토어에서 구독하도록 구조를 변경했습니다.
 
-## 2026-03-01 Update (Architecture - Session Expiration Redirect Guard)
+## 2026-03-01 업데이트 (아키텍처 - 세션 만료 리다이렉트 가드)
 - `services/storage/authStorage.ts`에 세션 변경 구독 API(`subscribeAuthSession`)를 추가하고, 세션 저장/삭제 시 변경 이벤트를 발행하도록 확장했습니다.
 - 탭 레이아웃(`app/(tabs)/_layout.tsx`)에서 세션 변경 이벤트 및 앱 활성화 시점을 구독해, refresh token이 없거나 만료되어 세션이 정리되면 즉시 `/(auth)/login`으로 이동하도록 가드를 추가했습니다.
 
-## 2026-03-01 Update (Architecture - Sensor Threshold Single Modal Flow)
+## 2026-03-01 업데이트 (아키텍처 - 센서 임계치 단일 모달 플로우)
 - 센서 임계치 모달 상태를 `store/useSensorThresholdStore.ts`에서 `isConfirmStepVisible` 기반 단일 모달 2단계(편집/확인) 구조로 재정의했습니다.
 - 중첩 모달 상태(`isConfirmModalVisible`, `pendingSave`)를 제거하고, 확인 단계 데이터는 `pendingValue`로 동일 모달 컨텍스트에서만 관리하도록 단순화했습니다.
 - 임계치 저장 타입(`types/stores/sensorThreshold.ts`)을 `min/max: number | null`로 변경해 최소/최대 개별 입력(부분 입력) 시나리오를 저장 모델에서 직접 지원하도록 정리했습니다.
+
+## 2026-03-03 업데이트 (아키텍처 - 인증 만료 상태코드 보강)
+- 공통 API 코어(`services/api/core/callApi.ts`)에서 인증 만료 처리 대상을 `401`뿐 아니라 `403`까지 확장했습니다.
+- 인증 API 재시도(retry) 요청도 동일하게 `401/403`을 감지하면 세션을 정리(`clearAuthSession`)하도록 보강했습니다.
+- 결과적으로 refresh/access 만료를 백엔드가 `403`으로 반환하는 환경에서도 세션 정리 이벤트가 발행되어 탭 레이아웃 가드가 로그인 화면으로 즉시 이동할 수 있게 정리했습니다.
+
+## 2026-03-03 업데이트 (아키텍처 - 토큰 파싱 안정화)
+- `services/api/core/callApi.ts`의 토큰 추출 유틸(`deepFindString`)을 보강해, 키(`access_token`, `refresh_token` 등)와 무관한 임의 문자열을 토큰으로 오인하지 않도록 수정했습니다.
+- 동일 로직을 `services/api/features/auth/service.ts`에도 반영해 인증 응답 파싱에서 문자열 메시지가 토큰으로 저장되는 위험을 제거했습니다.
+- refresh 응답에 실제 토큰 키가 없으면 즉시 세션을 정리해 로그인 화면으로 복귀하는 흐름이 안정적으로 동작하도록 보강했습니다.
+
+## 2026-03-03 업데이트 (아키텍처 - 만료 Refresh 토큰 선제 차단)
+- `services/storage/authStorage.ts`의 `getAuthSession()`에서 refresh token의 JWT `exp`를 검사하도록 확장했습니다.
+- refresh token이 만료된 세션은 조회 시점에 즉시 정리(`clearAuthSession`)되어, 앱 재활성화/재진입 시 인증 API 호출 전에 로그인 화면으로 안전하게 분기됩니다.
+- 앱 진입 부트스트랩(`app/index.tsx`, `app/(auth)/login.tsx`)에서 `farm/me` 프로필이 비정상(null)인 경우도 유효 세션으로 보지 않고 세션 정리 후 로그인 플로우로 되돌리도록 보강했습니다.
+
+## 2026-03-03 업데이트 (아키텍처 - 출하시기 카테고리 필터 공통화)
+- 출하시기 카테고리 판별/필터링 로직을 `shared/marketCategory.ts`로 통합했습니다.
+- 화면(`app/(tabs)/market/index.tsx`)에서는 `filterMarketSectionsByCategory` 공통 함수를 호출하도록 정리해, 섹션 필터 로직 중복을 제거했습니다.

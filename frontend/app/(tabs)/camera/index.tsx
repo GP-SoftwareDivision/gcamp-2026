@@ -11,7 +11,6 @@ import {
   Minimize,
   Minus,
   Plus,
-  Zap,
 } from 'lucide-react-native'
 import { useEffect, useRef } from 'react'
 import { ActivityIndicator, Dimensions, Pressable, Text, View } from 'react-native'
@@ -239,9 +238,22 @@ export default function CameraScreen() {
         </View>
       )}
 
-      {ipcamAddress && isConnecting ? (
+      {ipcamAddress && isConnecting && !connectionIssueMessage ? (
         <View className='absolute inset-0 items-center justify-center bg-black/35'>
           <ActivityIndicator size='large' color='#FFFFFF' />
+        </View>
+      ) : null}
+
+      {ipcamAddress && connectionIssueMessage ? (
+        <View className='absolute inset-0 items-center justify-center bg-black/45 px-6'>
+          <View className='w-full max-w-[320px] rounded-2xl bg-black/65 px-5 py-4'>
+            <Text className='text-center font-semibold text-danger text-subhead'>
+              접속이 원활하지 않습니다
+            </Text>
+            <Text className='mt-2 text-center text-white/80 text-subhead'>
+              네트워크 연결을 확인해 주세요
+            </Text>
+          </View>
         </View>
       ) : null}
 
@@ -267,19 +279,7 @@ export default function CameraScreen() {
         {renderVideo(isFullscreen ? '100%' : TOP_PLAYER_HEIGHT)}
         {!isFullscreen ? (
           <View className='flex-1 bg-background dark:bg-background-dark'>
-            {connectionIssueMessage ? (
-              <View className='items-center px-8 pt-8 pb-2'>
-                <Zap size={64} color={isDark ? '#7C808B' : '#8E92A0'} strokeWidth={1.6} />
-                <Text className='mt-4 font-semibold text-danger text-title-2'>
-                  접속이 원활하지 않습니다
-                </Text>
-                <Text className='mt-2 text-content-tertiary dark:text-content-dark-secondary text-subhead'>
-                  네트워크 연결을 확인해 주세요
-                </Text>
-              </View>
-            ) : (
-              <View className='h-5' />
-            )}
+            <View className='h-5' />
             {renderPtzController()}
           </View>
         ) : null}

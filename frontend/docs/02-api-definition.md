@@ -50,13 +50,13 @@
 ## 3. 주요 Request / Response DTO
 
 - **인증 (Auth):**
-  - `AuthenticationReq`: `username`, `password`, `termsAccepted?`, `privacyAccepted?`, `policiesAccepted?`
+  - `AuthenticationReq`(인증 요청): `username`, `password`, `termsAccepted?`, `privacyAccepted?`, `policiesAccepted?`
 - **날씨 (Weather):**
-  - `WeatherRequestDto`: `lat`, `lon`, `exclude?`
+  - `WeatherRequestDto`(날씨 요청): `lat`, `lon`, `exclude?`
 - **센서 (Sensor):**
-  - `SensorTypeSummaryReq`: `sensorType?`, `type?`, `showType?`
+  - `SensorTypeSummaryReq`(센서 요약 요청): `sensorType?`, `type?`, `showType?`
 - **시장 (Market):**
-  - `SettlementAverageQuery`: `itemCode`, `grade`, `unitName`
+  - `SettlementAverageQuery`(정산 평균 조회): `itemCode`, `grade`, `unitName`
   - `MarketRequestDto`: 조건/등급/단위/시장/기간 등 검색 필터 객체
 
 ## 4. 응답 데이터 파싱 및 안전성 확보 (Safety)
@@ -76,14 +76,14 @@
 ## 6. 로컬 스토리지 보관 데이터 (SecureStore)
 
 - 앱 내에 안전하게 보관되는 사용자 세션 데이터:
-  - `access/refresh token`
-  - `username`, `name`, `role`
-  - `farmAddress`, `farmLatitude`, `farmLongitude`
+  - 접근/갱신 토큰: `access/refresh token`
+  - 사용자 기본 정보: `username`, `name`, `role`
+  - 농장 위치 정보: `farmAddress`, `farmLatitude`, `farmLongitude`
   - `ipcamAddress`, `mac` (카메라 및 네트워크 연동 정보)
 
 ---
 
-## 📅 Update Logs (2026-02-24 ~ 2026-02-25)
+## 📅 업데이트 로그 (2026-02-24 ~ 2026-02-25)
 
 **[2026-02-24] 데이터 파싱 및 UI 연동 수정**
 
@@ -108,42 +108,42 @@
 - `services/api/features/farm/service.ts` 내부에 데이터 정규화 함수(`normalizeMyFarmProfile`)를 추가하여 파싱 진입점을 통일.
 
 
-## 2026-02-26 Update (API)
-- Added Market Search API integration with a dedicated fetch function: searchMarketPrices(params) in services/api/features/market/service.ts.
-- Endpoint used: http://34.64.246.19:7060/api/market/prices/search.
-- Query params supported: startDate, endDate, page (default 1), count (default 20).
-- Added response/request typing for the search API in types/api/features/market.ts (MarketSearchRequest, MarketSearchRecord, MarketSearchResponse).
+## 2026-02-26 업데이트 (API)
+- `services/api/features/market/service.ts`에 전용 조회 함수 `searchMarketPrices(params)`를 추가해 시세 검색 API를 연동했습니다.
+- 사용 엔드포인트: `http://34.64.246.19:7060/api/market/prices/search`
+- 지원 쿼리 파라미터: `startDate`, `endDate`, `page`(기본값 1), `count`(기본값 20)
+- `types/api/features/market.ts`에 검색 API 요청/응답 타입(`MarketSearchRequest`, `MarketSearchRecord`, `MarketSearchResponse`)을 추가했습니다.
 
-## 2026-02-26 Update (API - Search Params)
-- Expanded market search request parameters to always include itemCode, grade, unit along with startDate, endDate, page, and count.
-- Updated searchMarketPrices API call to pass all required query params to /api/market/prices/search.
+## 2026-02-26 업데이트 (API - 검색 파라미터)
+- 시세 검색 요청 파라미터를 `startDate`, `endDate`, `page`, `count`와 함께 `itemCode`, `grade`, `unit`을 항상 포함하도록 확장했습니다.
+- `searchMarketPrices` 호출이 `/api/market/prices/search`로 필수 쿼리 파라미터를 모두 전달하도록 수정했습니다.
 
-## 2026-02-26 Update (API - Search Validation Coupling)
-- Market search request is now driven by Zustand search state and includes all required params: startDate, endDate, itemCode, grade, unit, page, count.
-- Added zod-based pre-validation in the search screen so invalid requests are blocked before API execution.
+## 2026-02-26 업데이트 (API - 검색 검증 결합)
+- 시세 검색 요청이 Zustand 검색 상태를 기반으로 동작하도록 변경하고, `startDate`, `endDate`, `itemCode`, `grade`, `unit`, `page`, `count`를 모두 포함하도록 정리했습니다.
+- 검색 화면에서 zod 사전 검증을 추가해 유효하지 않은 요청은 API 실행 전에 차단하도록 했습니다.
 
-## 2026-02-26 Update (API - Fixed Pagination Defaults)
+## 2026-02-26 업데이트 (API - 페이지네이션 기본값 고정)
 - searchMarketPrices 호출에서 page와 count를 서비스 레이어에서 고정값 1, 20으로 강제해 항상 동일한 페이징 파라미터가 전송되도록 수정했습니다.
-## 2026-02-26 Update (API - Market Search Debug Logging)
+## 2026-02-26 업데이트 (API - 시세 검색 디버그 로깅)
 - `searchMarketPrices` 서비스에 요청/응답 디버그 로그를 추가했습니다.
 - 요청 로그에 `startDate`, `endDate`, `itemCode`, `grade`, `unit`, `page`, `count`를 출력합니다.
 - 응답 로그에 `totalElements`, `totalPages`, `recordsLength`, `sampleRecord`를 출력합니다.
 - 검색 응답 타입에 `MarketSearchResult` 메타 필드(`itemCode`, `grade`, `unit`, `startDate`, `endDate`, `page`, `count`, `size`, `totalElements`, `totalPages`)를 추가했습니다.
 - 검색 API 호출을 `raw axios`에서 `callApi` 경유로 전환하여 `Authorization` 헤더/토큰 재시도 체인과 동일하게 동작하도록 정렬했습니다.
 
-## 2026-02-27 Update (API - Base URL Env Fallback)
+## 2026-02-27 업데이트 (API - Base URL 환경 변수 폴백)
 - API Base URL 해석 시 EXPO_PUBLIC_API_URL 우선, 미설정 시 EXPO_PUBLIC_API_BASE_URL를 fallback으로 허용하도록 보강했습니다.
 
-## 2026-02-27 Update (API - Remove Hardcoded Base URL)
+## 2026-02-27 업데이트 (API - 하드코딩 Base URL 제거)
 - services/api/core/config.ts에서 DEFAULT_API_BASE_URL 하드코딩 fallback을 제거했습니다.
 - 이제 API Base URL은 EXPO_PUBLIC_API_URL 또는 EXPO_PUBLIC_API_BASE_URL env가 없으면 fail-fast 에러를 발생시킵니다.
-## 2026-02-27 Update (API - EAS Production Env)
+## 2026-02-27 업데이트 (API - EAS 프로덕션 환경 변수)
 - `eas.json`의 `build.production.env`에 `EXPO_PUBLIC_API_URL`, `EXPO_PUBLIC_PROJECT_ID`를 추가해 AAB 프로덕션 빌드에서도 런타임 API 환경변수가 누락되지 않도록 정리했습니다.
 
-## 2026-02-27 Update (API - Refresh Token Race Condition Fix)
+## 2026-02-27 업데이트 (API - Refresh Token 경쟁 상태 수정)
 - `services/api/core/callApi.ts`에 refresh token 재발급 single-flight 로직을 추가해 동시 401 상황에서도 refresh 요청이 1회만 수행되도록 수정했습니다.
 - refresh 응답이 401/403일 경우 세션을 즉시 정리하도록 처리해, 만료 세션이 남아서 빈 데이터 화면으로 진입하는 문제를 방지했습니다.
 
-## 2026-03-01 Update (API - Expired Refresh Token Hard Fail)
+## 2026-03-01 업데이트 (API - 만료된 Refresh Token 즉시 실패 처리)
 - refresh 응답에서 access token을 복구하지 못한 경우에도 세션을 즉시 정리하도록 `callApi`를 보강했습니다.
 - 인증 요청이 401로 실패하고 refresh 재발급이 실패하면 세션을 강제 정리해, 이후 탭 레이아웃 가드가 로그인 화면으로 즉시 전환할 수 있도록 동작을 일원화했습니다.

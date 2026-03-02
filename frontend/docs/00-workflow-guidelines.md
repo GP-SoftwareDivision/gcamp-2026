@@ -49,10 +49,10 @@
 - [ ] 공통 순수 함수 shared 분리
 - [ ] 작업 후 docs 반영
 
-## 7. Update Log (2026-02-24)
-- Temporary debug logging was added for camera RTSP address hydration flow.
-- Added tags: `[auth][normalize]`, `[auth][login]`, `[auth][bootstrap]`, `[app][bootstrap]`, `[camera][hydrate]`.
+## 7. 업데이트 로그 (2026-02-24)
+- 카메라 RTSP 주소 하이드레이션 흐름 확인을 위해 임시 디버그 로그를 추가했습니다.
+- 추가한 태그: `[auth][normalize]`, `[auth][login]`, `[auth][bootstrap]`, `[app][bootstrap]`, `[camera][hydrate]`.
 
-## 8. Update Log (2026-02-27)
+## 8. 업데이트 로그 (2026-02-27)
 - React Compiler 전제 규칙을 강화했습니다: `useState` 분산 사용 최소화, 파생값 렌더 계산 원칙 추가.
 - 재사용 순수 로직은 `shared/` 우선 분리 원칙을 명시했습니다.

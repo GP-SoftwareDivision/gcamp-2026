@@ -48,10 +48,7 @@ function deepFindString(
   depth = 0
 ): string | undefined {
   if (depth > 5) return undefined
-
-  if (typeof source === 'string' && source.trim().length > 0) {
-    return source
-  }
+  if (typeof source === 'string') return undefined
 
   if (Array.isArray(source)) {
     for (const item of source) {
