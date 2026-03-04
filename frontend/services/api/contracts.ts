@@ -40,6 +40,7 @@ export const API_ENDPOINTS = {
   sensor: {
     summaryByType: '/sensor/summary',
     recent: '/sensor/recent',
+    limit: '/sensor/limits',
   },
   admin: {
     sensor: '/admin/sensor',
@@ -183,6 +184,27 @@ export const API_REQUESTS = {
       action: 'recentSensorData',
       method: 'GET',
       url: API_ENDPOINTS.sensor.recent,
+      unwrapResult: false,
+    }),
+    createSensorLimit: defineRequest({
+      feature: 'sensor',
+      action: 'createSensorLimit',
+      method: 'POST',
+      url: API_ENDPOINTS.sensor.limit,
+      unwrapResult: false,
+    }),
+    updateSensorLimit: defineRequest({
+      feature: 'sensor',
+      action: 'updateSensorLimit',
+      method: 'PATCH',
+      url: API_ENDPOINTS.sensor.limit,
+      unwrapResult: false,
+    }),
+    deleteSensorLimit: defineRequest({
+      feature: 'sensor',
+      action: 'deleteSensorLimit',
+      method: 'DELETE',
+      url: API_ENDPOINTS.sensor.limit,
       unwrapResult: false,
     }),
   },

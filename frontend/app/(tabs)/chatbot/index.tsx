@@ -1,141 +1,276 @@
-import { ScreenScroll } from '@/components/ui'
-import type { Message } from '@/types/pages/tabs'
-import { ImagePlus, Leaf, Plus, Send } from 'lucide-react-native'
+import { TabHeader } from '@/components/ui'
+import { AndroidLayout, IS_ANDROID } from '@/constants/design'
+import { useTheme } from '@/hooks/theme'
+import type { Message } from '@/types/pages'
+import { Leaf, Plus, Send } from 'lucide-react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { useRef, useState } from 'react'
-import { ActionSheetIOS, Alert, Image, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import {
+  ActionSheetIOS,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  TextInput,
+  View,
+  type NativeSyntheticEvent,
+  type TextInputContentSizeChangeEventData,
+} from 'react-native'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 const QUICK_QUESTIONS = [
-  { icon: '🍅', text: '방울토마토 잎이 시들어요' },
-  { icon: '🌿', text: '흰가루병 증상 보여줘' },
-  { icon: '🌡️', text: '적정 온도 알려줘' },
+  '습도 관리 팁을 알려줘',
+  '오늘 관수량 점검 포인트를 알려줘',
+  '지금 시기에 병해충 체크할 항목이 뭐야?',
 ]
 
-const INITIAL_MESSAGES: Message[] = [{ id: 1, type: 'bot', content: '안녕하세요! 오늘은 작물 상태가 어떤가요? 궁금한 점을 물어보세요.' }]
+const INITIAL_MESSAGES: Message[] = [
+  {
+    id: 1,
+    type: 'bot',
+    content: '안녕하세요. AI 비서입니다. 작물 상태나 관리 방법을 편하게 물어보세요.',
+  },
+]
+
+const MIN_INPUT_HEIGHT = 24
+const MAX_INPUT_HEIGHT = 96
 
 export default function ChatbotScreen() {
+  const { isDark } = useTheme()
+  const insets = useSafeAreaInsets()
+
   const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES)
   const [inputText, setInputText] = useState('')
-  const scrollViewRef = useRef<import('react-native').ScrollView>(null)
+  const [inputHeight, setInputHeight] = useState(MIN_INPUT_HEIGHT)
 
-  const sendMessage = (text: string, image?: string) => {
-    if (!text.trim() && !image) return
-    const userMessage: Message = { id: messages.length + 1, type: 'user', content: text || '이미지를 분석해주세요', image }
+  const scrollRef = useRef<ScrollView>(null)
+  const messageIdRef = useRef(2)
+
+  const composerBottomPadding = IS_ANDROID
+    ? AndroidLayout.tabBarHeight + 8
+    : Math.max(insets.bottom, 10) + 54
+
+  const scrollToBottom = () => {
+    setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: true })
+    }, 80)
+  }
+
+  const handleInputContentSizeChange = (
+    event: NativeSyntheticEvent<TextInputContentSizeChangeEventData>,
+  ) => {
+    const nextHeight = Math.ceil(event.nativeEvent.contentSize.height)
+    const clamped = Math.min(MAX_INPUT_HEIGHT, Math.max(MIN_INPUT_HEIGHT, nextHeight))
+    setInputHeight(clamped)
+  }
+
+  const appendUserMessage = (text: string, image?: string) => {
+    const trimmed = text.trim()
+    if (!trimmed && !image) return
+
+    const userMessage: Message = {
+      id: messageIdRef.current,
+      type: 'user',
+      content: trimmed || '이미지를 확인해 주세요.',
+      image,
+    }
+    messageIdRef.current += 1
+
     setMessages((prev) => [...prev, userMessage])
     setInputText('')
-    setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)
+    setInputHeight(MIN_INPUT_HEIGHT)
+    scrollToBottom()
+
     setTimeout(() => {
-      const botResponse: Message = { id: messages.length + 2, type: 'bot', content: '죄송합니다. 현재 서비스 준비중 입니다.' }
-      setMessages((prev) => [...prev, botResponse])
-      setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100)
-    }, 1000)
+      const botMessage: Message = {
+        id: messageIdRef.current,
+        type: 'bot',
+        content: '현재는 프로토타입 단계입니다. 곧 실제 AI 응답과 연결될 예정입니다.',
+      }
+      messageIdRef.current += 1
+      setMessages((prev) => [...prev, botMessage])
+      scrollToBottom()
+    }, 700)
   }
 
   const takePhoto = async () => {
     const permission = await ImagePicker.requestCameraPermissionsAsync()
     if (!permission.granted) return
-    const result = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.8 })
-    if (!result.canceled && result.assets[0]) sendMessage('', result.assets[0].uri)
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    })
+
+    if (!result.canceled && result.assets[0]) {
+      appendUserMessage('', result.assets[0].uri)
+    }
   }
 
   const pickFromAlbum = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync()
     if (!permission.granted) return
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 })
-    if (!result.canceled && result.assets[0]) sendMessage('', result.assets[0].uri)
-  }
 
-  const handleImagePress = () => {
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ options: ['취소', '카메라로 촬영', '앨범에서 선택'], cancelButtonIndex: 0 }, (buttonIndex) => {
-        if (buttonIndex === 1) takePhoto()
-        else if (buttonIndex === 2) pickFromAlbum()
-      })
-    } else {
-      Alert.alert('이미지 추가', '어떻게 추가할까요?', [
-        { text: '취소', style: 'cancel' },
-        { text: '카메라로 촬영', onPress: takePhoto },
-        { text: '앨범에서 선택', onPress: pickFromAlbum },
-      ])
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.8,
+    })
+
+    if (!result.canceled && result.assets[0]) {
+      appendUserMessage('', result.assets[0].uri)
     }
   }
 
+  const openImagePicker = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['취소', '카메라로 촬영', '앨범에서 선택'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) takePhoto()
+          if (buttonIndex === 2) pickFromAlbum()
+        },
+      )
+      return
+    }
+
+    Alert.alert('이미지 추가', '첨부할 이미지를 선택해 주세요.', [
+      { text: '취소', style: 'cancel' },
+      { text: '카메라로 촬영', onPress: takePhoto },
+      { text: '앨범에서 선택', onPress: pickFromAlbum },
+    ])
+  }
+
+  const isSendDisabled = inputText.trim().length === 0
+
   return (
     <SafeAreaView className='flex-1 bg-background dark:bg-background-dark' edges={['top']}>
-      <View className='px-5 py-4'>
-        <Text className='text-title-lg text-content dark:text-content-dark'>AI 비서</Text>
-      </View>
+      <TabHeader title='AI 비서' />
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} className='flex-1' keyboardVerticalOffset={0}>
-        <ScreenScroll ref={scrollViewRef} className='flex-1 px-5' contentContainerClassName='py-4'>
-          {messages.map((message) => (
-            <View key={message.id} className={`mb-4 ${message.type === 'user' ? 'items-end' : 'items-start'}`}>
-              {message.type === 'bot' ? (
-                <View className='flex-row items-end gap-2 max-w-[88%]'>
-                  <View className='w-10 h-10 bg-primary rounded-full items-center justify-center mb-1'>
-                    <Leaf size={20} color='#FFFFFF' strokeWidth={1.8} />
-                  </View>
-                  <View className='flex-1 rounded-3xl rounded-bl-lg p-4 bg-card dark:bg-card-dark'>
-                    <Text className='text-body text-content dark:text-content-dark leading-6'>{message.content}</Text>
-                  </View>
-                </View>
-              ) : (
-                <View className='max-w-[80%]'>
-                  {message.image ? (
-                    <View className='mb-2 rounded-2xl overflow-hidden'>
-                      {message.image === 'camera_capture' ? (
-                        <View className='w-48 h-48 bg-gray-300 items-center justify-center rounded-2xl'>
-                          <ImagePlus size={40} color='#666' strokeWidth={1.5} />
-                          <Text className='text-caption-1 text-gray-500 mt-2'>촬영된 이미지</Text>
-                        </View>
-                      ) : (
-                        <Image source={{ uri: message.image }} className='w-48 h-48 rounded-2xl' resizeMode='cover' />
-                      )}
+      <KeyboardAvoidingView
+        className='flex-1'
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
+        <View className='flex-1'>
+          <ScrollView
+            ref={scrollRef}
+            className='flex-1 px-5'
+            contentContainerClassName='pt-1 pb-6'
+            keyboardShouldPersistTaps='handled'
+          >
+            {messages.map((message) => {
+              const isBot = message.type === 'bot'
+
+              return (
+                <View key={message.id} className={`mb-3 ${isBot ? 'items-start' : 'items-end'}`}>
+                  {isBot ? (
+                    <View className='max-w-[90%] flex-row items-end gap-2'>
+                      <View className='mb-1 h-9 w-9 items-center justify-center rounded-full bg-black dark:bg-white'>
+                        <Leaf size={17} color={isDark ? '#000000' : '#FFFFFF'} strokeWidth={2} />
+                      </View>
+                      <View className='rounded-2xl rounded-bl-sm border border-border bg-card px-4 py-3 dark:border-border-dark dark:bg-card-dark'>
+                        <Text className='text-body leading-6 text-content dark:text-content-dark'>
+                          {message.content}
+                        </Text>
+                      </View>
                     </View>
-                  ) : null}
-                  <View className='bg-primary rounded-3xl rounded-br-lg px-5 py-3'>
-                    <Text className='text-body text-white font-medium'>{message.content}</Text>
-                  </View>
+                  ) : (
+                    <View className='max-w-[88%]'>
+                      {message.image ? (
+                        <View className='mb-2 overflow-hidden rounded-2xl border border-border dark:border-border-dark'>
+                          <Image
+                            source={{ uri: message.image }}
+                            className='h-48 w-48 rounded-2xl'
+                            resizeMode='cover'
+                          />
+                        </View>
+                      ) : null}
+                      <View className='rounded-2xl rounded-br-sm bg-black px-4 py-3 dark:bg-white'>
+                        <Text className='text-body font-medium leading-6 text-white dark:text-black'>
+                          {message.content}
+                        </Text>
+                      </View>
+                    </View>
+                  )}
                 </View>
-              )}
-            </View>
-          ))}
+              )
+            })}
 
-          {messages.length === 1 && (
-            <View className='gap-2 mt-2 ml-12'>
-              {QUICK_QUESTIONS.map((q, i) => (
-                <Pressable
-                  key={i}
-                  onPress={() => sendMessage(q.text)}
-                  className='flex-row items-center px-4 py-3 bg-card dark:bg-card-dark rounded-2xl self-start'
-                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, borderCurve: 'continuous' })}
-                >
-                  <Text className='text-lg mr-2'>{q.icon}</Text>
-                  <Text className='text-body text-content dark:text-content-dark font-medium'>{q.text}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </ScreenScroll>
+            {messages.length === 1 ? (
+              <View className='mt-2 gap-2 pl-11'>
+                {QUICK_QUESTIONS.map((question) => (
+                  <Pressable
+                    key={question}
+                    onPress={() => appendUserMessage(question)}
+                    className='self-start rounded-2xl border border-border bg-card px-4 py-3 dark:border-border-dark dark:bg-card-dark'
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+                  >
+                    <Text className='text-subhead font-medium text-content dark:text-content-dark'>
+                      {question}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </ScrollView>
+        </View>
 
-        <View className='px-5 py-4 bg-background dark:bg-background-dark'>
-          <View className='flex-row items-center gap-2'>
-            <Pressable onPress={handleImagePress} className='w-12 h-12 items-center justify-center bg-primary rounded-full' style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
-              <Plus size={24} color='#FFFFFF' strokeWidth={2} />
+        <View
+          className='bg-background px-5 pt-3 dark:bg-background-dark'
+          style={{ paddingBottom: composerBottomPadding }}
+        >
+          <View
+            className='flex-row items-end rounded-2xl border border-border bg-card px-2 py-2 dark:border-border-dark dark:bg-card-dark'
+            style={{ minHeight: 56 }}
+          >
+            <Pressable
+              onPress={openImagePicker}
+              className='h-10 w-10 items-center justify-center rounded-xl'
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              accessibilityRole='button'
+              accessibilityLabel='이미지 첨부'
+            >
+              <Plus size={20} color='#8E8E93' strokeWidth={2} />
             </Pressable>
-            <View className='flex-1 flex-row items-center bg-card dark:bg-card-dark rounded-full px-4 h-12' style={{ borderCurve: 'continuous' }}>
+
+            <View className='mx-1 flex-1'>
               <TextInput
-                className='flex-1 text-body text-content dark:text-content-dark'
-                placeholder='무엇이든 물어보세요'
+                className='py-2 text-body leading-6 text-content dark:text-content-dark'
                 placeholderTextColor='#8E8E93'
                 value={inputText}
                 onChangeText={setInputText}
-                onSubmitEditing={() => sendMessage(inputText)}
+                multiline
+                maxLength={500}
+                onContentSizeChange={handleInputContentSizeChange}
+                style={{
+                  minHeight: inputHeight,
+                  maxHeight: MAX_INPUT_HEIGHT,
+                  textAlignVertical: 'top',
+                }}
               />
             </View>
-            <Pressable onPress={() => sendMessage(inputText)} className='w-12 h-12 rounded-full items-center justify-center bg-primary' style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}>
-              <Send size={20} color='#FFFFFF' strokeWidth={1.8} />
+
+            <Pressable
+              onPress={() => appendUserMessage(inputText)}
+              disabled={isSendDisabled}
+              className={`h-10 w-10 items-center justify-center rounded-full ${
+                isSendDisabled ? 'bg-background dark:bg-[#111216]' : 'bg-black dark:bg-white'
+              }`}
+              style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+              accessibilityRole='button'
+              accessibilityLabel='메시지 전송'
+            >
+              <Send
+                size={17}
+                color={isSendDisabled ? '#8E8E93' : isDark ? '#000000' : '#FFFFFF'}
+                strokeWidth={1.9}
+              />
             </Pressable>
           </View>
         </View>

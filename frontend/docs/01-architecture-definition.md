@@ -224,3 +224,28 @@
 ## 2026-03-03 업데이트 (아키텍처 - 출하시기 카테고리 필터 공통화)
 - 출하시기 카테고리 판별/필터링 로직을 `shared/marketCategory.ts`로 통합했습니다.
 - 화면(`app/(tabs)/market/index.tsx`)에서는 `filterMarketSectionsByCategory` 공통 함수를 호출하도록 정리해, 섹션 필터 로직 중복을 제거했습니다.
+
+## 2026-03-04 업데이트 (아키텍처 - 센서 임계치 API 상태관리 연동)
+- 센서 임계치 저장 스토어(`store/useSensorThresholdStore.ts`)를 API 연동형으로 확장했습니다.
+- 저장 확인 시점에 `farm/me` 프로필의 `mac`를 조회하고, `mac + sensorType + limitType` 기준으로 임계치 `등록(POST)`, `수정(PATCH)`, `삭제(DELETE)`를 분기 호출하도록 변경했습니다.
+- 센서 타입 매핑/동기화 계획 생성 로직을 `shared/sensorThreshold.ts`로 분리해 화면/스토어의 비즈니스 로직 중복을 제거했습니다.
+- 임계치 모달 상태에 `isSaving`을 추가하고, 저장 API 실패 시 에러 메시지를 동일 모달에서 바로 표시하도록 상태 흐름을 정리했습니다.
+
+## 2026-03-04 업데이트 (아키텍처 - 센서 임계치 API 디버그 로그)
+- 임계치 API 호출 확인을 위해 `services/api/features/sensor/service.ts`에 `[sensor/limit]` 태그 기반 요청/성공/실패 로그를 추가했습니다.
+- 임계치 저장 스토어(`store/useSensorThresholdStore.ts`)에도 동기화 계획(`syncPlans`), 센서 타입 매핑 결과, fallback 분기(409/404) 로그를 추가해 테스트 시 호출 흐름을 추적할 수 있도록 보강했습니다.
+
+## 2026-03-04 업데이트 (아키텍처 - 센서 임계치 수정 fallback 보강)
+- 임계치 수정(PATCH) 요청이 서버 `500`으로 실패하는 케이스 대응을 위해 저장 스토어에 fallback을 추가했습니다.
+- 동작 규칙: 수정 시 `delete -> create` 전략을 기본 적용하고, create가 `409`(already exists)면 `update`를 재시도하도록 보강했습니다.
+
+## 2026-03-04 업데이트 (아키텍처 - 임계치 create 충돌 응답 보강)
+- 서버가 create 충돌을 `409`가 아닌 `400 + already exists` 메시지로 반환하는 케이스를 충돌로 인식하도록 보강했습니다.
+- 임계치 create 충돌 시 기본 fallback은 update(수정)로 처리하고, update가 `404/500`으로 실패하면 `delete -> create`를 재시도하도록 정리했습니다.
+
+## 2026-03-04 Update (Code Structure - Sensor Detail Screen Refactor)
+- Split `app/(tabs)/home/sensor/[id].tsx` into feature modules to reduce single-file complexity.
+- Moved chart rendering to `components/sensor-detail/SensorLineChart.tsx`.
+- Moved threshold modal UI/interaction shell to `components/sensor-detail/SensorThresholdModal.tsx`.
+- Moved sensor detail pure helpers/types to `shared/sensorDetail.ts`.
+- Added feature prop types in `types/pages/tabs/sensorDetail.ts` and exported via tabs type index.

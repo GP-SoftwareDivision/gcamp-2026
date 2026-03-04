@@ -3,6 +3,7 @@ export type { Message } from './chatbot'
 export type { SensorItem } from './home'
 export type { GradeItem, TomatoSection } from './market'
 export type { DatedPoint, MarketChartData, MarketChartPoint } from './marketDetail'
+export type { SensorInfo, SensorLineChartProps, SensorThresholdModalProps } from './sensorDetail'
 export type {
   MarketSearchFilters,
   MarketSearchSelectOption,

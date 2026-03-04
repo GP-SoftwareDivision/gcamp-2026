@@ -24,6 +24,9 @@
 | **network** | GET    | `/network/public-ip`                       |     Y     | 현재 접속된 퍼블릭 IP 조회            |
 | **sensor**  | GET    | `/sensor/summary`                          |     Y     | 등록된 센서 요약 데이터 조회          |
 | **sensor**  | GET    | `/sensor/recent`                           |     Y     | 센서 최신(실시간) 측정 데이터 조회    |
+| **sensor**  | POST   | `/sensor/limits`                           |     Y     | 센서 임계치 등록 (mac + sensorType + limitType) |
+| **sensor**  | PATCH  | `/sensor/limits`                           |     Y     | 센서 임계치 수정 (mac + sensorType + limitType) |
+| **sensor**  | DELETE | `/sensor/limits`                           |     Y     | 센서 임계치 삭제 (mac + sensorType + limitType) |
 | **market**  | GET    | `/market/prices`                           |     Y     | 도매 시장 가격 데이터 조회            |
 | **market**  | GET    | `/market/prices/recently`                  |     Y     | 최근 시장 가격 추이 (차트용)          |
 | **market**  | GET    | `/market/prices/settlements`               |     Y     | 특정 기간/조건의 경매 정산 가격       |
@@ -55,6 +58,8 @@
   - `WeatherRequestDto`(날씨 요청): `lat`, `lon`, `exclude?`
 - **센서 (Sensor):**
   - `SensorTypeSummaryReq`(센서 요약 요청): `sensorType?`, `type?`, `showType?`
+  - `UpsertSensorLimitReq`(임계치 등록/수정): `mac`, `sensorType`, `limitType`, `sensorLimitValue`, `useFlag`
+  - `DeleteSensorLimitReq`(임계치 삭제): `mac`, `sensorType`, `limitType`
 - **시장 (Market):**
   - `SettlementAverageQuery`(정산 평균 조회): `itemCode`, `grade`, `unitName`
   - `MarketRequestDto`: 조건/등급/단위/시장/기간 등 검색 필터 객체
@@ -147,3 +152,8 @@
 ## 2026-03-01 업데이트 (API - 만료된 Refresh Token 즉시 실패 처리)
 - refresh 응답에서 access token을 복구하지 못한 경우에도 세션을 즉시 정리하도록 `callApi`를 보강했습니다.
 - 인증 요청이 401로 실패하고 refresh 재발급이 실패하면 세션을 강제 정리해, 이후 탭 레이아웃 가드가 로그인 화면으로 즉시 전환할 수 있도록 동작을 일원화했습니다.
+
+## 2026-03-04 업데이트 (API - 센서 임계치 등록/수정/삭제 추가)
+- `services/api/contracts.ts`에 `sensor.limit('/sensor/limits')` 엔드포인트와 `POST/PATCH/DELETE` 요청 프리셋을 추가했습니다.
+- `services/api/features/sensor/service.ts`에 임계치 API 함수 `createSensorLimit`, `updateSensorLimit`, `deleteSensorLimit`를 추가했습니다.
+- `types/api/features/sensor.ts`에 임계치 요청 타입(`SensorLimitType`, `UpsertSensorLimitReq`, `DeleteSensorLimitReq`)을 추가했습니다.

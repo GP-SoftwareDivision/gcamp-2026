@@ -11,6 +11,7 @@ export type SensorThresholdDraft = {
 export type SensorThresholdModalState = {
   isEditorModalVisible: boolean
   isConfirmStepVisible: boolean
+  isSaving: boolean
   activeSensorType: string | null
   draft: SensorThresholdDraft
   errorMessage: string | null
@@ -27,5 +28,5 @@ export interface SensorThresholdStore {
   setDraftMinInput: (value: string) => void
   setDraftMaxInput: (value: string) => void
   setModalErrorMessage: (message: string | null) => void
-  confirmSaveThreshold: () => void
+  confirmSaveThreshold: () => Promise<boolean>
 }
